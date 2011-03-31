@@ -3,11 +3,12 @@ p = (x) -> sys.puts(sys.inspect(x))
 jsdom = require('jsdom')
 $ = null
 fs = require('fs')
+_ = require('underscore')
+async = require('async')
 Data = require('data')
 
 exports.LatexRenderer = (doc) ->
-  html_renderer = (html) ->
-    
+  html_renderer = (html, callback) ->
     # Render HTML Node
     render = (n) ->
       $n = $(n)
@@ -21,7 +22,7 @@ exports.LatexRenderer = (doc) ->
 
       switch n.nodeName
         when 'A'
-          "\\href{#{$n.attr 'href'}}{#{render $n.html()}}"
+          "\\href{#{$n.attr 'href'}}{#{(render $n).trim()}}"
         when 'BR'
           "\\linebreak\n"
         when 'P', 'BODY'
@@ -29,9 +30,9 @@ exports.LatexRenderer = (doc) ->
             render @
           $n.text() + "\n"
         when 'I'
-          "\\textit{#{render $n}}"
+          "\\textit{#{(render $n).trim()}}"
         when 'B'
-          "\\textbf{#{render $n}}"
+          "\\textbf{#{(render $n).trim()}}"
         else
           p "couldn't match #{n.nodeName}, inlining html:"
           p $n.html()
@@ -41,11 +42,10 @@ exports.LatexRenderer = (doc) ->
       ['http://code.jquery.com/jquery-1.5.min.js'],
       (err, w) ->
         $ = w.$
-        result = render(w.$("body")[0])
-    result
+        callback(render(w.$("body")[0]))
 
   renderers = {
-    "/type/document": (node, parent, level) ->
+    "/type/document": (node, parent, level, callback) ->
       children = node.all('children')
       
       res = "\\documentclass[12pt,leqno]{memoir}\n"
@@ -53,47 +53,68 @@ exports.LatexRenderer = (doc) ->
       res += "\\begin{document}\n"
       res += "\\title{#{node.get('title').trim()}}"
       
-      if (children)
-        children.each (child, key, index) ->
-          res += renderers[child.type._id](child, node, level+1)
-      
-      res += "\n\\end{document}\n"
-      return res
+      childres = {}
+      # Render childs, asynchronously and in parallel
+      async.forEach children.keys(), (childKey, callback) ->
+        child = children.get(childKey)
+        renderers[child.type._id] child, null, level+1, (latex) ->
+          childres[childKey] = latex
+          callback()
+      , ->
+        # Merge results
+        _.each children.keys(), (child) ->
+          res += childres[child]
+        
+        res += "\n\\end{document}\n"
+        callback(res)
     
-    "/type/story": (node, parent, level) ->
-      renderers["/type/document"](node)
+    "/type/story": (node, parent, level, callback) ->
+      renderers["/type/document"](node, parent, level, callback)
 
-    "/type/conversation": (node, parent, level) ->
-      renderers["/type/document"](node)
+    "/type/conversation": (node, parent, level, callback) ->
+      renderers["/type/document"](node, parent, level, callback)
       
-    "/type/article": (node, parent, level) ->
-      renderers["/type/document"](node)
+    "/type/article": (node, parent, level, callback) ->
+      renderers["/type/document"](node, parent, level, callback)
 
-    "/type/manual": (node, parent, level) ->
-      renderers["/type/document"](node)
+    "/type/manual": (node, parent, level, callback) ->
+      renderers["/type/document"](node, parent, level, callback)
 
-    "/type/qaa": (node, parent, level) ->
-      renderers["/type/document"](node)
+    "/type/qaa": (node, parent, level, callback) ->
+      renderers["/type/document"](node, parent, level, callback)
     
-    "/type/section": (node, parent, level) ->
-      res = ""
+    "/type/section": (node, parent, level, callback) ->
       children = node.all('children')
+      res = ""
       
-      res += "\\section{\n"
-      if (children)
-        node.all('children').each (child, key, index) ->
-          res += renderers[child.type._id](child, node, level+1)
-      res += "}\n\n"
-      return res
+      res += "\\section{#{node.get('name')}}"
+      
+      childres = {}
+      # Render childs, asynchronously and in parallel
+      async.forEach(children.keys(), (childKey, callback) ->
+        child = children.get(childKey)
+        renderers[child.type._id](child, node, level+1, (latex) ->
+          childres[childKey] = latex
+          callback()
+        )
+        
+      , ->
+        # Merge results
+        _.each children.keys(), (child) ->
+          res += childres[child]
+        callback(res)
+      )
 
-    "/type/text": (node, parent, level) ->
-      # html_renderer(node.get('content').trim())
-      node.get('content').trim()
+    "/type/text": (node, parent, level, callback) ->
+      html_renderer node.get('content').trim(), (latex) ->
+        callback(latex)
   }
   
   # Export Interface
   {
-    render: ->
+    render: (callback) ->
       # Traverse the document
-      renderers[doc.type._id](doc, null, 0).trim();
+      renderers[doc.type._id](doc, null, 0, (html) ->
+        callback(html)
+      )
   }

@@ -7,7 +7,6 @@ Data = require('data')
 async = require('async')
 LatexRenderer = require('./src/renderers').LatexRenderer
 
-
 # Fixtures
 schema = JSON.parse(fs.readFileSync(__dirname+ '/data/schema.json', 'utf-8'))
 raw_doc = JSON.parse(fs.readFileSync(__dirname+ '/data/document.json', 'utf-8'))
@@ -19,13 +18,9 @@ graph.merge(raw_doc.graph)
 # Fetch the doc
 doc = graph.get('/document/substance/2569faba6cc0583fa8a7b037d8a721b3')
 
-console.log(LatexRenderer)
-
-app = express.createServer()
-
 app.get '/', (req, res) ->
-  res.send(new LatexRenderer(doc).render());
-  # res.send('Hello World')
+  new LatexRenderer(doc).render (latex) ->
+    res.send(latex)
 
 console.log('Substance Press is listening at http://localhost:4004');
 app.listen(4004);
