@@ -68,5 +68,5 @@ app.get '/latex', (req, res) ->
     res.send(latex)
 
 # Start the fun
-console.log('Substance Press is listening at http://localhost:4004')
+console.log('Letterpress is listening at http://localhost:4004')
 app.listen(4004)
