@@ -23,8 +23,9 @@ exports.LatexRenderer = (doc) ->
       switch n.nodeName
         when 'A'
           "\\href{#{$n.attr 'href'}}{#{(render $n).trim()}}"
-        when 'BR'
-          "\\linebreak\n"
+        # Not considering line breaks due to some issues
+        # when 'BR'
+        #   "\\linebreak\n"
         when 'P', 'BODY'
           $n.children().replaceWith ->
             render @
@@ -34,8 +35,9 @@ exports.LatexRenderer = (doc) ->
         when 'B'
           "\\textbf{#{(render $n).trim()}}"
         else
-          p "couldn't match #{n.nodeName}, inlining html:"
-          p $n.html()
+          "" # skip for now
+          #p "couldn't match #{n.nodeName}, inlining html:"
+          #p $n.html()
     
     result = 'aaa'
     jsdom.env html,
@@ -73,7 +75,7 @@ exports.LatexRenderer = (doc) ->
 
     "/type/conversation": (node, parent, level, callback) ->
       renderers["/type/document"](node, parent, level, callback)
-      
+    
     "/type/article": (node, parent, level, callback) ->
       renderers["/type/document"](node, parent, level, callback)
 
@@ -87,7 +89,7 @@ exports.LatexRenderer = (doc) ->
       children = node.all('children')
       res = ""
       
-      res += "\\section{#{node.get('name')}}"
+      res += "\\section{#{node.get('name')}}\n"
       
       childres = {}
       # Render childs, asynchronously and in parallel
@@ -108,6 +110,32 @@ exports.LatexRenderer = (doc) ->
     "/type/text": (node, parent, level, callback) ->
       html_renderer node.get('content').trim(), (latex) ->
         callback(latex)
+        
+    "/type/code": (node, parent, level, callback) ->
+      res = "\\begin{verbatim}\n"
+      res += node.get('content')+"\n"
+      res += "\\end{verbatim}\n"
+      callback(res)
+      
+    "/type/image": (node, parent, level, callback) ->
+      # Images are skipped
+      callback("")
+      
+    "/type/quote": (node, parent, level, callback) ->
+      # Quotes are skipped
+      callback("") # Is there some Latex markup for quotations?
+    
+    "/type/question": (node, parent, level, callback) ->
+      # Questions are skipped
+      callback("")
+      
+    "/type/answer": (node, parent, level, callback) ->
+      # Answers are skipped
+      callback("")
+
+    "/type/visualization": (node, parent, level, callback) ->
+      # Not yet supported
+      callback("")
   }
   
   # Export Interface
