@@ -1,0 +1,177 @@
+/*
+ Helpers
+----------------------
+*/
+
+* {
+  box-sizing:border-box;
+  -webkit-box-sizing:border-box;
+  -moz-box-sizing:border-box;
+}
+
+.clear { clear: both; }
+.hidden { display: none; }
+.invisible { opacity: 0; }
+.right { float: right; }
+.left { float: left; }
+.nobr {white-space: nowrap} 
+.right-align {text-align: right; }
+
+.serif {
+  font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, FreeSerif, serif;
+  font-weight: lighter;
+}
+
+.italic {
+  font-style: italic;
+}
+
+/* Common styles
+-------------------------------------------------------------------------------*/
+
+html { margin: 0; padding: 0; }
+img { border: none; }
+
+body { 
+  margin: 0; padding: 0;
+  background: #F0F1EB;
+  color:#444;
+  font: normal 15px/19px Helvetica, Arial, Verdana, sans-serif;
+  line-height:1.5em;
+}
+
+/*a { color: #252519;  }
+a:hover { text-decoration: none; }
+*/
+
+a {
+  text-decoration:none;
+  color: #51483D;
+  border-bottom: 1px solid #ccc;
+  padding: 0 0 1px 0;
+}
+
+a:hover {
+  color: #000;
+  border-bottom: 1px solid #999;
+}
+
+
+p { margin: 0 0 10px 0; }
+p.info {
+  font-style: italic;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+h1, h2, h3, h4, h5, h6 { padding: 10px 0 5px 0; 
+  font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, FreeSerif, serif;
+}
+
+h1 { font-size: 300%; /*letter-spacing: -0.07em;*/ line-height: 1.1em; padding-bottom: 0.2em; }
+
+h3, h4, h5, h6 { padding-top: 20px; }
+h2 { font-size: 160%; padding-bottom: 15px; }
+
+:focus { outline: 0; } /* should go to reset.css */
+
+
+/* Meta Data DT DD */
+
+dl { margin: 0;	padding: 0; }
+dt { 
+
+  color: rgba(255,255,255, 0.5); padding-left: 5px; position: relative; left: 0; top: 20px; width: 150px; font-size: 16px; font-style: italic; margin: 0; padding: 0;
+}
+dd { color: #fff; font-size: 1em;	margin: 0 0 0 155px; padding: 0; padding-left: 20px; }
+
+
+/* Webkit Animation Settings */
+li        {  -webkit-transition: background, background-color, border-color, color, opacity 0.35s linear; }
+a         {  -webkit-transition: background, background-color, border-color, color, opacity 0.35s linear; }
+label     {  -webkit-transition: background, background-color, border-color, color, opacity 0.35s linear; }
+input     {  -webkit-transition: background, background-color, border-color, color, opacity 0.35s linear; }
+textarea  {  -webkit-transition: background, background-color, border-color, color, opacity 0.35s linear; }
+img       {  -webkit-transition: opacity 0.35s linear; }
+
+
+/* Form input */
+
+input {
+  position:relative;
+  margin:0 auto;
+  padding: 4px 10px;
+  font-size:14px;
+  color: #666;
+  border: none;
+  background: #E1E2DE;
+}
+
+input[type=submit] {
+  font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, FreeSerif, serif;
+  font-weight: lighter;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+input[type=submit]:hover {
+  opacity: 1.0;
+}
+
+textarea {
+  position:relative;
+  width:100%;
+  height:250px;
+  margin:0 auto;
+  padding:5px;
+  font-size:12px;
+  color: #666;
+  border:1px solid transparent;
+  resize:none;
+  background-color:rgba(255,255,255,0.5);
+}
+
+input:hover, textarea:hover { 
+  
+}
+
+input:focus, textarea:focus { 
+
+}
+
+
+/* Button
+-------------------------------------------------------------------------------*/
+
+
+a.button {
+  border: none;
+  display: block;
+  float: left;
+  font-size: 15px;
+  color: white;
+  background: #A2C44E;
+  padding: 7px 10px;
+  -webkit-border-radius:4px;
+  -moz-border-radius:   4px;
+  border-radius:        4px;
+}
+
+a.button.contribute {
+  margin-top: 20px;
+}
+
+a.button:hover {
+  background: #B4D354;
+}
+
+a.button:active {
+  background: #98B247;
+}
+
+
+/* body > #container
+-------------------------------------------------------------------------------*/
+
+#container { margin: auto; margin-top: 30px; padding: 0; max-width: 800px; }
+
+input.url { width: 500px;}
