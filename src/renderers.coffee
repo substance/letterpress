@@ -18,7 +18,7 @@ exports.LatexRenderer = (doc) ->
           return " " + n.html().trim() + " "
         if n.toString?
           return " " + n.toString().trim() + " "
-        return ''
+        return "NONOTHING"
 
       switch n.nodeName
         when 'A'
@@ -27,19 +27,20 @@ exports.LatexRenderer = (doc) ->
         # when 'BR'
         #   "\\linebreak\n"
         when 'P', 'BODY'
+          console.log('P detected:')
+          console.log($n.text());
           $n.children().replaceWith ->
             render @
           $n.text() + "\n"
-        when 'I'
+        when 'I', 'EM'
           "\\textit{#{(render $n).trim()}}"
-        when 'B'
+        when 'B', 'STRONG'
           "\\textbf{#{(render $n).trim()}}"
         else
-          "" # skip for now
-          #p "couldn't match #{n.nodeName}, inlining html:"
-          #p $n.html()
+          # "" # skip for now
+          p "couldn't match #{n.nodeName}, inlining html:"
+          p $n.html()
     
-    result = 'aaa'
     jsdom.env html,
       ['http://code.jquery.com/jquery-1.5.min.js'],
       (err, w) ->
@@ -53,7 +54,7 @@ exports.LatexRenderer = (doc) ->
       res = "\\documentclass[12pt,leqno]{memoir}\n"
       res += "\\usepackage{hyperref}\n"
       res += "\\begin{document}\n"
-      res += "\\title{#{node.get('title').trim()}}"
+      res += "\\title{#{(node.get('title') || "").trim()}}"
       
       childres = {}
       # Render childs, asynchronously and in parallel
