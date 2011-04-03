@@ -27,8 +27,6 @@ exports.LatexRenderer = (doc) ->
         # when 'BR'
         #   "\\linebreak\n"
         when 'P', 'BODY'
-          console.log('P detected:')
-          console.log($n.text());
           $n.children().replaceWith ->
             render @
           $n.text() + "\n"
