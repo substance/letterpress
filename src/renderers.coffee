@@ -1,49 +1,54 @@
 sys = require('sys')
 p = (x) -> sys.puts(sys.inspect(x))
-jsdom = require('jsdom')
+# jsdom = require('jsdom')
+sax = require('sax')
 $ = null
 fs = require('fs')
 _ = require('underscore')
 async = require('async')
 Data = require('data')
+Encoder = require('./encoder').Encoder
 
 exports.LatexRenderer = (doc) ->
-  html_renderer = (html, callback) ->
-    # Render HTML Node
-    render = (n) ->
-      $n = $(n)
-
-      unless n.nodeName?
-        if n.html?
-          return " " + n.html().trim() + " "
-        if n.toString?
-          return " " + n.toString().trim() + " "
-        return "NONOTHING"
-
-      switch n.nodeName
-        when 'A'
-          "\\href{#{$n.attr 'href'}}{#{(render $n).trim()}}"
-        # Not considering line breaks due to some issues
-        # when 'BR'
-        #   "\\linebreak\n"
-        when 'P', 'BODY'
-          $n.children().replaceWith ->
-            render @
-          $n.text() + "\n"
-        when 'I', 'EM'
-          "\\textit{#{(render $n).trim()}}"
-        when 'B', 'STRONG'
-          "\\textbf{#{(render $n).trim()}}"
-        else
-          # "" # skip for now
-          p "couldn't match #{n.nodeName}, inlining html:"
-          p $n.html()
+  renderHTML = (html, callback) ->
+    parser = sax.parser(false, {
+      trim: true
+    });
     
-    jsdom.env html,
-      ['http://code.jquery.com/jquery-1.5.min.js'],
-      (err, w) ->
-        $ = w.$
-        callback(render(w.$("body")[0]))
+    res = "";
+    
+    parser.onerror = (e) ->
+      # an error happened.
+      
+    parser.ontext = (t) ->
+      res += Encoder.htmlDecode(t);
+      
+    parser.onopentag = (node) ->      
+      switch (node.name)
+        when 'A'
+          res += " \\href{#{node.attributes.href}}{"
+        when 'P', 'BODY'
+          res += "\n\n"
+        when 'I', 'EM'
+          res += " \\textit{"
+        when 'B', 'STRONG'
+          res += " \\textbf{"
+        when 'BR'
+          res += "\\\\\n"
+        else
+          # skip for now
+    
+    parser.onclosetag = (node) ->
+      switch(node)
+        when 'A', 'I', 'EM', 'B', 'STRONG'
+          res += "} "
+        else
+          # skip for now
+    parser.onend = ->
+      # parser stream is done, and ready to have more stuff written to it.
+    
+    parser.write(html).close()
+    callback(res)
 
   renderers = {
     "/type/document": (node, parent, level, callback) ->
@@ -88,7 +93,7 @@ exports.LatexRenderer = (doc) ->
       children = node.all('children')
       res = ""
       
-      res += "\\section{#{node.get('name')}}\n"
+      res += "\n\n\\section{#{node.get('name').trim()}}\n"
       
       childres = {}
       # Render childs, asynchronously and in parallel
@@ -107,7 +112,7 @@ exports.LatexRenderer = (doc) ->
       )
 
     "/type/text": (node, parent, level, callback) ->
-      html_renderer node.get('content').trim(), (latex) ->
+      renderHTML node.get('content').trim(), (latex) ->
         callback(latex)
         
     "/type/code": (node, parent, level, callback) ->
@@ -120,6 +125,10 @@ exports.LatexRenderer = (doc) ->
       # Images are skipped
       callback("")
       
+    "/type/resource": (node, parent, level, callback) ->
+      # Quotes are skipped
+      callback("") # Is there some Latex markup for quotations?  
+    
     "/type/quote": (node, parent, level, callback) ->
       # Quotes are skipped
       callback("") # Is there some Latex markup for quotations?
