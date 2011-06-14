@@ -6,6 +6,7 @@ _ = require('underscore')
 Data = require('data')
 async = require('async')
 LatexRenderer = require('./src/renderers').LatexRenderer
+{spawn, exec} = require 'child_process'
 
 # Express.js Configuration
 # -----------
@@ -52,8 +53,10 @@ Util.convert = (url, options, callback) ->
     new LatexRenderer(doc).render (latex) ->
       callback(null, latex)
 
+
 # Routes
 # -----------
+
 
 # Index
 app.get '/', (req, res) ->
@@ -66,6 +69,23 @@ app.get '/latex', (req, res) ->
   res.header('Content-Type', 'text/plain')
   Util.convert req.query.url, {format: 'Latex'}, (err, latex) ->
     res.send(latex)
+
+# On the fly PDF generation
+app.get '/pdf', (req, res) ->
+  pdfCmd = "pdflatex -output-directory tmp tmp/document.latex"
+
+  res.writeHead(200, { 'Content-Type': 'application/pdf'})
+  Util.convert req.query.url, {format: 'Latex'}, (err, latex) ->
+    
+    fs.writeFile 'tmp/document.latex', latex, (err) ->
+      throw err if err
+      exec pdfCmd, (err, stdout, stderr) ->
+        console.log(stdout);
+        fs.readFile 'tmp/document.pdf', (err, data) ->
+          res.write(data, 'binary');
+          res.end()
+        throw err if err
+      
 
 # Start the fun
 console.log('Letterpress is listening at http://localhost:4004')
