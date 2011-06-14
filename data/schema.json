@@ -1,4 +1,30 @@
 {
+  "/type/config": {
+    "_id": "/type/config",
+    "type": "/type/type",
+    "name": "Configuration",
+    "properties": {
+      "allow_user_registration": {
+        "name": "Allow User registration",
+        "type": "boolean",
+        "unique": true,
+        "default": true
+      },
+      "document_types": {
+        "name": "Supported Document Types",
+        "type": "string",
+        "unique": false,
+        "required": false
+      }
+    }
+  },
+  
+  "/config/substance": {
+    "type": "/type/config",
+    "document_types": ["/type/qaa", "/type/manual", "/type/article"],
+    "allow_user_registration": true
+  },
+
   "/type/user": {
     "_id": "/type/user",
     "type": "/type/type",
@@ -53,6 +79,7 @@
       }
     }
   },
+
   "/type/attribute": {
     "_id": "/type/attribute",
     "type": "/type/type",
@@ -72,6 +99,197 @@
       }
     }
   },
+  
+  "/type/event": {
+    "_id": "/type/event",
+    "type": "/type/type",
+    "properties": {
+      "event_type": {
+        "name": "Event Type",
+        "unique": true,
+        "type": "string",
+        "required": true
+      },
+      "message": {
+        "name": "Event message",
+        "unique": true,
+        "type": "string",
+        "required": true
+      },
+      "creator": {
+        "name": "User causing the event",
+        "unique": true,
+        "type": "/type/user",
+        "required": true
+      },
+      "link": {
+        "name": "Link",
+        "unique": true,
+        "type": "string",
+        "required": true
+      },
+      "created_at": {
+        "name": "Created at",
+        "unique": true,
+        "type": "date",
+        "required": true
+      }
+    },
+    "indexes": {
+      "by_date": ["created_at"],
+      "by_event_type_and_date": ["event_type", "created_at"]
+    }
+  },
+  
+  "/type/notification": {
+    "_id": "/type/notification",
+    "type": "/type/type",
+    "properties": {
+      "event": {
+        "name": "Associated Event",
+        "unique": true,
+        "type": "/type/event",
+        "required": true
+      },
+      "recipient": {
+        "name": "Recipient",
+        "unique": true,
+        "type": "/type/user",
+        "required": true
+      },
+      "read": {
+        "name": "Read",
+        "type": "boolean",
+        "unique": true,
+        "default": false
+      },
+      "created_at": {
+        "name": "Created at",
+        "unique": true,
+        "type": "date",
+        "required": true
+      },
+      "event_type": {
+        "name": "Event Type",
+        "unique": true,
+        "type": "string"
+      },
+      "message": {
+        "name": "Event message",
+        "unique": true,
+        "type": "string"
+      },
+      "link": {
+        "name": "Link",
+        "unique": true,
+        "type": "string"
+      }
+    },
+    "indexes": {
+      "by_recipient": ["recipient"],
+      "by_date": ["created_at"],
+      "by_recipient_and_date": ["recipient", "created_at"] 
+    }
+  },
+  
+  "/type/bookmark": {
+    "_id": "/type/bookmark",
+    "type": "/type/type",
+    "properties": {
+      "creator": {
+        "name": "Creator",
+        "unique": true,
+        "type": "/type/user",
+        "required": true,
+        "meta": {}
+      },
+      "document": {
+        "name": "Document",
+        "type": "/type/document",
+        "unique": true,
+        "required": true
+      },
+      "node": {
+        "name": "Referenced Node",
+        "type": ["/type/text", "/type/section", "/type/quote", "/type/image", "/type/resource"],
+        "unique": true,
+        "required": true
+      },
+      "created_at": {
+        "name": "Created at",
+        "unique": true,
+        "type": "date",
+        "required": true
+      }
+    },
+    "indexes": {
+      "by_creator": ["creator"]
+    }
+  },
+
+  "/type/subscription": {
+    "_id": "/type/subscription",
+    "type": "/type/type",
+    "properties": {
+      "document": {
+        "name": "Document",
+        "type": "/type/document",
+        "unique": true,
+        "required": true
+      },
+      "user": {
+        "name": "User",
+        "type": "/type/user",
+        "unique": true,
+        "required": true
+      }
+    },
+    "indexes": {
+      "key": ["user", "document"]
+    }
+	},
+	
+	"/type/comment": {
+    "_id": "/type/comment",
+    "type": "/type/type",
+    "properties": {
+      "node": {
+        "name": "Node",
+        "type": ["/type/section", "/type/text", "/type/image", "/type/resource", "/type/quote", "/type/code", "/type/question", "/type/answer"],
+        "unique": true,
+        "required": true
+      },
+      "document": {
+        "name": "Document",
+        "type": ["/type/document"],
+        "unique": true,
+        "required": true
+      },
+      "creator": {
+        "name": "Creator",
+        "type": "/type/user",
+        "unique": true,
+        "required": true
+      },
+      "created_at": {
+        "name": "Created at",
+        "unique": true,
+        "type": "date",
+        "required": true
+      },
+      "content": {
+        "name": "Content",
+        "type": "string",
+        "unique": true,
+        "required": true
+      }
+    },
+    "indexes": {
+      "by_node": ["node"],
+      "by_user": ["user"]
+    }
+	},
+
   "/type/document": {
     "_id": "/type/document",
     "type": "/type/type",
@@ -101,8 +319,7 @@
         "unique": true,
         "type": "/type/user",
         "required": true,
-        "meta": {
-        }
+        "meta": {}
       },
       "created_at": {
         "name": "Created at",
@@ -121,6 +338,23 @@
         "unique": true,
         "type": "date"
       },
+      "settings": {
+		    "name": "Document Settings",
+		    "unique": true,
+		    "type": "object"
+	    },
+	    "views": {
+		    "name": "View Count",
+		    "unique": true,
+		    "type": "number",
+		    "default": 0
+	    },
+  	  "subscribers": {
+    		"name": "Subscribers",
+    		"unique": true,
+    		"type": "number",
+    		"default": 0
+  	  },
       "subjects": {
         "type": ["/type/attribute"],
         "name": "Subjects",
@@ -139,8 +373,12 @@
           "facet": true
         }
       }
+    },
+    "indexes": {
+      "key": ["creator", "name"]
     }
   },
+
   "/type/qaa": {
     "type": "/type/type",
     "name": "Q&A",
@@ -158,6 +396,7 @@
       }
     }
   },
+
   "/type/manual": {
     "type": "/type/type",
     "name": "Manual",
@@ -175,6 +414,7 @@
       }
     }
   },
+
   "/type/article": {
     "type": "/type/type",
     "name": "Article",
@@ -182,7 +422,7 @@
       "children": {
         "name": "Children/Contents",
         "unique": false,
-        "type": ["/type/section"],
+        "type": ["/type/section", "/type/text", "/type/image", "/type/resource", "/type/quote", "/type/code"],
         "default": []
       }
     },
@@ -192,6 +432,7 @@
       }
     }
   },
+
   "/type/section": {
     "_id": "/type/section",
     "type": "/type/type",
@@ -212,11 +453,18 @@
       "children": {
         "name": "Children",
         "unique": false,
-        "type": ["/type/text", "/type/quote", "/type/code", "/type/section"],
+        "type": ["/type/text", "/type/image", "/type/resource", "/type/quote", "/type/code", "/type/section"],
+        "default": []
+      },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
         "default": []
       }
     }
   },
+
   "/type/text": {
     "_id": "/type/text",
     "type": "/type/type",
@@ -228,6 +476,12 @@
         "type": "string",
         "default": "<p></p>"
       },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
+      },
       "document": {
         "name": "Document Membership",
         "unique": true,
@@ -236,6 +490,7 @@
       }
     }
   },
+
   "/type/visualization": {
     "_id": "/type/visualization",
     "type": "/type/type",
@@ -255,6 +510,12 @@
         "required": true,
         "default": "linechart"
       },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
+      },
       "document": {
         "name": "Document Membership",
         "unique": true,
@@ -263,6 +524,7 @@
       }
     }
   },
+
   "/type/question": {
     "_id": "/type/question",
     "type": "/type/type",
@@ -279,9 +541,16 @@
         "unique": true,
         "required": true,
         "type": ["/type/document"]
+      },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
       }
     }
   },
+
   "/type/answer": {
     "_id": "/type/answer",
     "type": "/type/type",
@@ -298,9 +567,16 @@
         "unique": true,
         "required": true,
         "type": ["/type/document"]
+      },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
       }
     }
   },
+
   "/type/quote": {
     "_id": "/type/quote",
     "type": "/type/type",
@@ -323,9 +599,16 @@
         "unique": true,
         "required": true,
         "type": ["/type/document"]
+      },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
       }
     }
   },
+
   "/type/code": {
     "_id": "/type/code",
     "type": "/type/type",
@@ -342,16 +625,23 @@
         "unique": true,
         "required": true,
         "type": ["/type/document"]
+      },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
       }
     }
-  },  
+  },
+
   "/type/image": {
     "_id": "/type/image",
     "type": "/type/type",
     "name": "Image",
     "properties": {
-      "title": {
-        "name": "Image Title",
+      "caption": {
+        "name": "Image Caption",
         "unique": true,
         "type": "string"
       },
@@ -360,11 +650,52 @@
         "unique": true,
         "type": "string"
       },
+      "original_url": {
+        "name": "Original Image URL",
+        "unique": true,
+        "type": "string"
+      },
       "document": {
         "name": "Document Membership",
         "unique": true,
         "required": true,
         "type": ["/type/document"]
+      },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
+      }
+    }
+  },
+
+  "/type/resource": {
+    "_id": "/type/image",
+    "type": "/type/type",
+    "name": "Resource",
+    "properties": {
+      "caption": {
+        "name": "Caption",
+        "unique": true,
+        "type": "string"
+      },
+      "url": {
+        "name": "Resource URL",
+        "unique": true,
+        "type": "string"
+      },
+      "document": {
+        "name": "Document Membership",
+        "unique": true,
+        "required": true,
+        "type": ["/type/document"]
+      },
+      "comments": {
+        "name": "Comments",
+        "unique": false,
+        "type": ["/type/comment"],
+        "default": []
       }
     }
   }
