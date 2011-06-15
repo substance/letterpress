@@ -72,15 +72,18 @@ app.get '/latex', (req, res) ->
 
 # On the fly PDF generation
 app.get '/pdf', (req, res) ->
-  pdfCmd = "pdflatex -output-directory tmp tmp/document.latex"
+  pdfCmd = "pdflatex -output-directory tmp tmp/document.tex"
 
   res.writeHead(200, { 'Content-Type': 'application/pdf'})
   Util.convert req.query.url, {format: 'Latex'}, (err, latex) ->
     
-    fs.writeFile 'tmp/document.latex', latex, (err) ->
+    console.log('meeh')
+    
+    fs.writeFile 'tmp/document.tex', latex, 'utf8', (err) ->
+      
       throw err if err
       exec pdfCmd, (err, stdout, stderr) ->
-        console.log(stdout);
+        # console.log(stdout);
         fs.readFile 'tmp/document.pdf', (err, data) ->
           res.write(data, 'binary');
           res.end()

@@ -1,6 +1,5 @@
 sys = require('sys')
 p = (x) -> sys.puts(sys.inspect(x))
-# jsdom = require('jsdom')
 sax = require('sax')
 $ = null
 fs = require('fs')
@@ -9,7 +8,19 @@ async = require('async')
 Data = require('data')
 Encoder = require('./encoder').Encoder
 
+template = fs.readFileSync(__dirname+ '/../templates/latex/lncs.tex', 'utf-8')
+
+
+# Unescape HTML entities
+unescape = (html) ->
+  return String(html||'').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                                    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, " ");
+
 exports.LatexRenderer = (doc) ->
+  
+  # Why?
+  content = ""
+
   renderHTML = (html, callback) ->
     parser = sax.parser(false, {
       trim: true
@@ -21,7 +32,9 @@ exports.LatexRenderer = (doc) ->
       # an error happened.
       
     parser.ontext = (t) ->
-      res += Encoder.htmlDecode(t);
+      # res += Encoder.htmlDecode(t)
+      # res += t
+      res += unescape(t)
       
     parser.onopentag = (node) ->      
       switch (node.name)
@@ -41,7 +54,7 @@ exports.LatexRenderer = (doc) ->
     parser.onclosetag = (node) ->
       switch(node)
         when 'A', 'I', 'EM', 'B', 'STRONG'
-          res += "} "
+          res += "}"
         else
           # skip for now
     parser.onend = ->
@@ -49,15 +62,15 @@ exports.LatexRenderer = (doc) ->
     
     parser.write(html).close()
     callback(res)
-
+  
+  
+  
   renderers = {
     "/type/document": (node, parent, level, callback) ->
       children = node.all('children')
       
-      res = "\\documentclass[12pt,leqno]{memoir}\n"
-      res += "\\usepackage{hyperref}\n"
-      res += "\\begin{document}\n"
-      res += "\\title{#{(node.get('title') || "").trim()}}"
+      res = template
+      content = ""
       
       childres = {}
       # Render childs, asynchronously and in parallel
@@ -69,9 +82,16 @@ exports.LatexRenderer = (doc) ->
       , ->
         # Merge results
         _.each children.keys(), (child) ->
-          res += childres[child]
+          content += childres[child]
         
-        res += "\n\\end{document}\n"
+        # res += "\n\\end{document}\n"
+        
+        # Render template
+        res = res.replace("####title####", (node.get('title') || "").trim())
+                 .replace("####author####", node.get('creator').get('name'))
+                 .replace("####content####", content)
+                 .replace("####abstract####", node.get('lead'))
+                 
         callback(res)
     
     "/type/story": (node, parent, level, callback) ->
@@ -91,9 +111,9 @@ exports.LatexRenderer = (doc) ->
     
     "/type/section": (node, parent, level, callback) ->
       children = node.all('children')
-      res = ""
+      result = ""
       
-      res += "\n\n\\section{#{node.get('name').trim()}}\n"
+      result += "\n\n\\section{#{node.get('name').trim()}}\n"
       
       childres = {}
       # Render childs, asynchronously and in parallel
@@ -107,8 +127,8 @@ exports.LatexRenderer = (doc) ->
       , ->
         # Merge results
         _.each children.keys(), (child) ->
-          res += childres[child]
-        callback(res)
+          result += childres[child]
+        callback(result)
       )
 
     "/type/text": (node, parent, level, callback) ->
@@ -116,10 +136,10 @@ exports.LatexRenderer = (doc) ->
         callback(latex)
         
     "/type/code": (node, parent, level, callback) ->
-      res = "\\begin{verbatim}\n"
-      res += node.get('content')+"\n"
-      res += "\\end{verbatim}\n"
-      callback(res)
+      result = "\\begin{verbatim}\n"
+      result += node.get('content')+"\n"
+      result += "\\end{verbatim}\n"
+      callback(result)
       
     "/type/image": (node, parent, level, callback) ->
       # Images are skipped
