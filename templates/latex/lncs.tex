@@ -1,5 +1,4 @@
 \documentclass[runningheads]{llncs}
-
 \usepackage{ngerman}
 
 \usepackage[utf8]{inputenc}
@@ -16,8 +15,7 @@
 \usepackage{graphicx}
 \usepackage{url}
 
-
-% fuer die aktuelle Zeit
+% Current time
 \usepackage{scrtime}
 \usepackage{listings}
 \usepackage{subfigure}
@@ -29,6 +27,10 @@
 
 \begin{document}
 
+% Disable paragraph indent
+\setlength{\parindent}{0pt} 
+\setlength{\parskip}{2ex}
+
 \mainmatter  % start of an individual contribution
 
 % first the title is needed
@@ -37,26 +39,21 @@
 % a short form should be given in case it is too long for the running head
 % \titlerunning{Lecture Notes in Computer Science: Authors' Instructions}
 
-% the name(s) of the author(s) follow(s) next
-%
-% NB: Chinese authors should write their first names(s) in front of
-% their surnames. This ensures that the names appear correctly in
-% the running heads and the author index.
-%
-
 \author{####author####}
+
 %
 % \authorrunning{Lecture Notes in Computer Science: Authors' Instructions}
 
 % (feature abused for this document to repeat the title also on left hand pages)
 
 % the affiliations are given next
-\institute{Springer-Verlag, Computer Science Editorial,\\
-Tiergartenstr. 17, 69121 Heidelberg, Germany\\
-\mailsa\\
-\mailsb\\
-\url{http://www.springer.com/lncs}}
-
+% \institute{Springer-Verlag, Computer Science Editorial,\\
+% Tiergartenstr. 17, 69121 Heidelberg, Germany\\
+% \mailsa\\
+% \mailsb\\
+% \url{http://substance.io}}
+\institute{ Written with Substance \\
+\url{http://substance.io}}
 
 \toctitle{Lecture Notes in Computer Science}
 \tocauthor{Authors' Instructions}
@@ -66,7 +63,6 @@ Tiergartenstr. 17, 69121 Heidelberg, Germany\\
 \begin{abstract}
 ####abstract####
 \end{abstract}
-
 
 ####content####
 

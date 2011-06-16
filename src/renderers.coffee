@@ -14,16 +14,26 @@ template = fs.readFileSync(__dirname+ '/../templates/latex/lncs.tex', 'utf-8')
 # Unescape HTML entities
 unescape = (html) ->
   return String(html||'').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-                                    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, " ");
+                         .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, " ")
+                         .replace(/\\/g, '$\\backslash$') # escape \
+                         .replace(/\"/g, '``') # escape "
+                         .replace(/_/g, '\\_') # escape _
+                         .replace(/&/g, '\\&') # escape &
+                         .replace(/#/g, '\\#') # escape #
+                         .replace(/~/g, '\\verb') # escape ~
+                         .replace(/\$/g, '\\$') # escape $
+                         .replace(/%/g, '\\%') # escape %
+                         .replace(/\^/g, '\\^') # escape ^
+                         .replace(/\{/g, '\\{') # escape {
+                         .replace(/\}/g, '\\}') # escape }
 
 exports.LatexRenderer = (doc) ->
   
-  # Why?
   content = ""
 
   renderHTML = (html, callback) ->
     parser = sax.parser(false, {
-      trim: true
+      # trim: true
     });
     
     res = "";
@@ -46,6 +56,12 @@ exports.LatexRenderer = (doc) ->
           res += " \\textit{"
         when 'B', 'STRONG'
           res += " \\textbf{"
+        when 'UL'
+          res += "\\begin{itemize}"
+        when 'OL'
+          res += "\\begin{enumerate}"
+        when 'LI'
+          res += "\n\\item "
         when 'BR'
           res += "\\\\\n"
         else
@@ -55,6 +71,10 @@ exports.LatexRenderer = (doc) ->
       switch(node)
         when 'A', 'I', 'EM', 'B', 'STRONG'
           res += "}"
+        when 'UL'
+          res += "\\end{itemize}\n"
+        when 'OL'
+          res += "\\end{enumerate}\n"
         else
           # skip for now
     parser.onend = ->
@@ -90,7 +110,7 @@ exports.LatexRenderer = (doc) ->
         res = res.replace("####title####", (node.get('title') || "").trim())
                  .replace("####author####", node.get('creator').get('name'))
                  .replace("####content####", content)
-                 .replace("####abstract####", node.get('lead'))
+                 .replace("####abstract####", (node.get('lead') || "").trim())
                  
         callback(res)
     
@@ -113,7 +133,16 @@ exports.LatexRenderer = (doc) ->
       children = node.all('children')
       result = ""
       
-      result += "\n\n\\section{#{node.get('name').trim()}}\n"
+      console.log(level);
+      switch(level)
+        when 1
+          cmd = "section"
+        when 2
+          cmd = "subsection"
+        when 3
+          cmd = "subsubsection"
+      
+      result += "\n\n\\"+cmd+"{#{node.get('name').trim()}}\n"
       
       childres = {}
       # Render childs, asynchronously and in parallel

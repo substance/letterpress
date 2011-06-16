@@ -72,24 +72,35 @@ app.get '/latex', (req, res) ->
 
 # On the fly PDF generation
 app.get '/pdf', (req, res) ->
-  pdfCmd = "pdflatex -output-directory tmp tmp/document.tex"
+  pdfCmd = "pdflatex -halt-on-error -output-directory tmp tmp/document.tex"
 
-  res.writeHead(200, { 'Content-Type': 'application/pdf'})
   Util.convert req.query.url, {format: 'Latex'}, (err, latex) ->
-    
-    console.log('meeh')
-    
     fs.writeFile 'tmp/document.tex', latex, 'utf8', (err) ->
       
       throw err if err
       exec pdfCmd, (err, stdout, stderr) ->
-        # console.log(stdout);
-        fs.readFile 'tmp/document.pdf', (err, data) ->
-          res.write(data, 'binary');
-          res.end()
-        throw err if err
-      
+        console.log(stderr);
+        if (err)
+          # res.send('An error occurred during PDF generation. Be aware PDF export is highly experimental.
+          #           So please help by reporting your problem to info@substance.io');
+          res.send(stdout);
+        else        
+          fs.readFile 'tmp/document.pdf', (err, data) ->
+            throw err if err
+            res.writeHead(200, { 'Content-Type': 'application/pdf'})
+            res.write(data, 'binary');
+            res.end()
+
+
+# Catch errors that may crash the server
+process.on 'uncaughtException', (err) ->
+  console.log('Caught exception: ' + err)
+
+# setTimeout(function () {
+#   console.log('This will still run.');
+# }, 500);
 
 # Start the fun
 console.log('Letterpress is listening at http://localhost:4004')
 app.listen(4004)
+
