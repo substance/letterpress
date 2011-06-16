@@ -7,7 +7,7 @@ _ = require('underscore')
 async = require('async')
 Data = require('data')
 
-template = fs.readFileSync(__dirname+ '/../templates/latex/lncs.tex', 'utf-8')
+
 
 
 # Unescape HTML entities
@@ -28,6 +28,7 @@ unescape = (html) ->
 
 exports.LatexRenderer = (doc) ->
   
+  template = fs.readFileSync(__dirname+ '/../templates/latex/lncs.tex', 'utf-8')
   content = ""
 
   renderHTML = (html, callback) ->
