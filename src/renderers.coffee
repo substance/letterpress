@@ -6,7 +6,6 @@ fs = require('fs')
 _ = require('underscore')
 async = require('async')
 Data = require('data')
-Encoder = require('./encoder').Encoder
 
 template = fs.readFileSync(__dirname+ '/../templates/latex/lncs.tex', 'utf-8')
 
