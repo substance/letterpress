@@ -133,7 +133,6 @@ exports.LatexRenderer = (doc) ->
       children = node.all('children')
       result = ""
       
-      console.log(level);
       switch(level)
         when 1
           cmd = "section"
