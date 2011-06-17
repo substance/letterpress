@@ -30,7 +30,8 @@ Util = {}
 
 Util.fetchDocument = (url, callback) ->
   fragments = require('url').parse(url)
-  options = { host: fragments.host, path: fragments.pathname }
+  options = { host: fragments.hostname, port: fragments.port, path: fragments.pathname }
+
   options.path += fragments.search if fragments.search
 
   http.get options, (cres) ->
@@ -126,9 +127,9 @@ app.get '/pdf', (req, res) ->
           exec pdfCmd, (err, stdout, stderr) ->
             console.log(stderr)
             if (err)
-              # res.send('An error occurred during PDF generation. Be aware PDF export is highly experimental.
-              #           So please help by reporting your problem to info@substance.io')
-              res.send(stdout)
+              res.send('An error occurred during PDF generation. Be aware PDF export is highly experimental.
+                        So please help by reporting your problem to <a href="mailto:info@substance.io">info@substance.io</a>.')
+              # res.send(stdout)
             else
               fs.readFile "tmp/#{id}/document.pdf", (err, data) ->
                 throw err if err
