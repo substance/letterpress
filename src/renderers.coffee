@@ -7,11 +7,8 @@ _ = require('underscore')
 async = require('async')
 Data = require('data')
 
-
-
-
-# Unescape HTML entities
-unescape = (html) ->
+# Sanitize
+sanitize = (html) ->
   return String(html||'').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
                          .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, " ")
                          .replace(/\\/g, '$\\backslash$') # escape \
@@ -30,6 +27,7 @@ exports.LatexRenderer = (doc) ->
   
   template = fs.readFileSync(__dirname+ '/../templates/latex/lncs.tex', 'utf-8')
   content = ""
+  resources = []
 
   renderHTML = (html, callback) ->
     parser = sax.parser(false, {
@@ -42,9 +40,7 @@ exports.LatexRenderer = (doc) ->
       # an error happened.
       
     parser.ontext = (t) ->
-      # res += Encoder.htmlDecode(t)
-      # res += t
-      res += unescape(t)
+      res += sanitize(t)
       
     parser.onopentag = (node) ->      
       switch (node.name)
@@ -170,8 +166,20 @@ exports.LatexRenderer = (doc) ->
       callback(result)
       
     "/type/image": (node, parent, level, callback) ->
-      # Images are skipped
-      callback("")
+      resources.push(node.get('original_url'));
+      
+      
+      # result = 
+      callback """
+               \n\\begin{figure}[htb]
+               \\begin{center}
+               \\leavevmode
+               \\includegraphics[width=1.0\\textwidth]{./tmp/#{doc.html_id}/resources/#{resources.length-1}.png}
+               \\end{center}
+               \\caption{#{sanitize(node.get('caption'))}}
+               \\label{fig:awesome_image}
+               \\end{figure}
+               """
       
     "/type/resource": (node, parent, level, callback) ->
       # Quotes are skipped
@@ -199,6 +207,6 @@ exports.LatexRenderer = (doc) ->
     render: (callback) ->
       # Traverse the document
       renderers[doc.type._id](doc, null, 0, (html) ->
-        callback(html)
+        callback(html, resources);
       )
   }
