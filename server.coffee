@@ -65,7 +65,7 @@ fetchResource = (url, id, index, callback) ->
   if (fragments.search)
     options.path += fragments.search
   
-  fs.mkdirSync("tmp/#{id}/resources", 0755)
+  
   out = fs.createWriteStream("tmp/#{id}/resources/#{index}.png", {encoding: 'binary'})
   
   http.get options, (cres) ->
@@ -118,6 +118,7 @@ app.get '/pdf', (req, res) ->
     # First remove tmp dir if still there
     exec rmCmd, (err, stdout, stderr) ->
       fs.mkdirSync("tmp/#{id}", 0755)
+      fs.mkdirSync("tmp/#{id}/resources", 0755)
 
       fs.writeFile "tmp/#{id}/document.tex", latex, 'utf8', (err) ->
         throw err if err
@@ -128,7 +129,7 @@ app.get '/pdf', (req, res) ->
             console.log(stderr)
             if (err)
               res.send('An error occurred during PDF generation. Be aware PDF export is highly experimental.
-                        So please help by reporting your problem to <a href="mailto:info@substance.io">info@substance.io</a>.')
+                        Problems occur when special characters are used for example. Please help improving all this by reporting your particular problem to <a href="mailto:info@substance.io">info@substance.io</a>.')
               # res.send(stdout)
             else
               fs.readFile "tmp/#{id}/document.pdf", (err, data) ->
