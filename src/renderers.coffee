@@ -52,6 +52,8 @@ exports.LatexRenderer = (doc) ->
           res += " \\textit{"
         when 'B', 'STRONG'
           res += " \\textbf{"
+        when 'CODE'
+          res += " \\texttt{"
         when 'UL'
           res += "\\begin{itemize}"
         when 'OL'
@@ -65,7 +67,7 @@ exports.LatexRenderer = (doc) ->
     
     parser.onclosetag = (node) ->
       switch(node)
-        when 'A', 'I', 'EM', 'B', 'STRONG'
+        when 'A', 'I', 'EM', 'B', 'STRONG', 'CODE'
           res += "}"
         when 'UL'
           res += "\\end{itemize}\n"
