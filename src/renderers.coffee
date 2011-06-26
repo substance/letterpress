@@ -7,21 +7,25 @@ _ = require('underscore')
 async = require('async')
 Data = require('data')
 
+
+unescape = (text) ->
+  String(text||'').replace(/&amp;/g, '\\&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, " ")
+
 # Sanitize
 sanitize = (html) ->
-  return String(html||'').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-                         .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&nbsp;/g, " ")
-                         .replace(/\\/g, '$\\backslash$') # escape \
-                         .replace(/\"/g, '``') # escape "
-                         .replace(/_/g, '\\_') # escape _
-                         .replace(/&/g, '\\&') # escape &
-                         .replace(/#/g, '\\#') # escape #
-                         .replace(/~/g, '\\verb') # escape ~
-                         .replace(/\$/g, '\\$') # escape $
-                         .replace(/%/g, '\\%') # escape %
-                         .replace(/\^/g, '\\^') # escape ^
-                         .replace(/\{/g, '\\{') # escape {
-                         .replace(/\}/g, '\\}') # escape }
+  unescape(html)
+    .replace(/\\/g, '$\\backslash$') # escape \
+    .replace(/\"/g, '``') # escape "
+    .replace(/_/g, '\\_') # escape _
+    .replace(/&/g, '\\&') # escape &
+    .replace(/#/g, '\\#') # escape #
+    .replace(/~/g, '\\verb') # escape ~
+    .replace(/\$/g, '\\$') # escape $
+    .replace(/%/g, '\\%') # escape %
+    .replace(/\^/g, '\\^') # escape ^
+    .replace(/\{/g, '\\{') # escape {
+    .replace(/\}/g, '\\}') # escape }
 
 exports.LatexRenderer = (doc) ->
   
@@ -78,10 +82,9 @@ exports.LatexRenderer = (doc) ->
     parser.onend = ->
       # parser stream is done, and ready to have more stuff written to it.
     
-    parser.write(html).close()
+    
+    parser.write("<p>"+html+"</p>").close()
     callback(res)
-  
-  
   
   renderers = {
     "/type/document": (node, parent, level, callback) ->
@@ -163,13 +166,12 @@ exports.LatexRenderer = (doc) ->
         
     "/type/code": (node, parent, level, callback) ->
       result = "\\begin{verbatim}\n"
-      result += node.get('content')+"\n"
+      result += unescape(node.get('content'))+"\n"
       result += "\\end{verbatim}\n"
       callback(result)
       
     "/type/image": (node, parent, level, callback) ->
       resources.push(node.get('original_url'));
-      
       
       # result = 
       callback """
