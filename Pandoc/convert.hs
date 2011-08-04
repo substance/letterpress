@@ -1,21 +1,20 @@
 import Pandoc.Filters.ParseHtml (parseHtml)
 import System.Environment (getArgs)
 import Text.Pandoc
-  ( Pandoc(..), WriterOptions(..), defaultWriterOptions
-  , writeLaTeX, writeMarkdown, writeHtmlString
+  ( Pandoc(..), WriterOptions(..)
+  , defaultWriterOptions, writers
   )
 import Text.JSON.Generic (decodeJSON)
+import System.FilePath ((</>))
 
 main :: IO ()
 main = do
-  [format] <- getArgs
-  interact $ convert format writerOptions . parseHtml . decodeJSON
-
-writerOptions :: WriterOptions
-writerOptions = defaultWriterOptions
-
-convert :: String -> WriterOptions -> Pandoc -> String
-convert "latex"    = writeLaTeX
-convert "markdown" = writeMarkdown
-convert "html"     = writeHtmlString
-convert format = error $ "unknown format: " ++ format
+  [format,templatesDir] <- getArgs
+  let (Just writer) = lookup format writers
+  let templateFile = templatesDir </> "default." ++ format
+  template <- readFile templateFile
+  let writerOptions = defaultWriterOptions
+                        { writerStandalone = True
+                        , writerTemplate = template
+                        }
+  interact $ writer writerOptions . parseHtml . decodeJSON

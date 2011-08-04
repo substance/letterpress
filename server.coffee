@@ -51,7 +51,7 @@ Util.fetchDocument = (url, callback) ->
     callback(e)
 
 Util.convert = (format, doc, callback) ->
-  cmd = "./convert #{format}"
+  cmd = "./convert #{format} #{__dirname}/templates"
   process = exec cmd, (err, stdout, stderr) ->
     if err
       callback(new Error(stderr), null)
