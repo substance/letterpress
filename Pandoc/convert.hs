@@ -4,7 +4,7 @@ import Text.Pandoc
   ( Pandoc(..), WriterOptions(..), defaultWriterOptions
   , writeLaTeX, writeMarkdown, writeHtmlString
   )
-import Text.JSON.Generic (decodeJSON, encodeJSON)
+import Text.JSON.Generic (decodeJSON)
 
 main :: IO ()
 main = do
@@ -15,7 +15,7 @@ writerOptions :: WriterOptions
 writerOptions = defaultWriterOptions
 
 convert :: String -> WriterOptions -> Pandoc -> String
-convert "latex"    = \_ -> encodeJSON
+convert "latex"    = writeLaTeX
 convert "markdown" = writeMarkdown
 convert "html"     = writeHtmlString
 convert format = error $ "unknown format: " ++ format
