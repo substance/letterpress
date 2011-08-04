@@ -76,7 +76,7 @@ class exports.PandocRenderer
     [@blockHtml node.get('content').trim()]
       
   "/type/code": (node, level) ->
-    [{ CodeBlock: [@nullAttr, node.get('content') ] }]
+    [{ CodeBlock: [@nullAttr(), node.get('content') ] }]
     
   "/type/image": (node, level) ->
     # In Pandoc, images are inline elements => wrap them with a paragraph
