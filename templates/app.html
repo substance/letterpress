@@ -7,15 +7,7 @@
   <link href="stylesheets/reset.css" media="screen" rel="stylesheet" type="text/css" />
   <link href="stylesheets/app.css" media="screen" rel="stylesheet" type="text/css" />
   
-  <script src="/javascripts/jquery-1.5.min.js"></script>
-  <script>
-    $(function() {
-      $("#render_job").submit(function() {
-        window.location.href = "/latex?url="+encodeURI($('#document_url').val());
-        return false;
-      });
-    });
-  </script>
+  <!--<script src="/javascripts/jquery-1.5.min.js"></script>-->
 </head>
 <body>
   
@@ -30,8 +22,14 @@
       You can render any document that conforms to the Substance Document Format.
     </p>
     
-    <form id="render_job">
-      <input class="url" type="text" id="document_url" name="url" value="http://substance.io/documents/substance/substance"/>
+    <form id="render_job" action="/render" method="get">
+      <input type="url" class="url" id="document_url" name="url" value="http://substance.io/documents/substance/substance"/>
+      <select name="format" class="format" size="1">
+        <option value="latex" selected="selected">LaTeX</option>
+        <option value="markdown">Markdown</option>
+        <option value="html">HTML</option>
+        <!--<option value="pdf">PDF</option>-->
+      </select>
       <input type="submit" value="Render"/>
     </form>
   </div>

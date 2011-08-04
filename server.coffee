@@ -5,7 +5,7 @@ fs = require('fs')
 _ = require('underscore')
 Data = require('data')
 async = require('async')
-LatexRenderer = require('./src/renderers').LatexRenderer
+{LatexRenderer,PandocRenderer} = require('./src/renderers')
 {spawn, exec} = require 'child_process'
 
 # Express.js Configuration
@@ -28,6 +28,11 @@ raw_doc = JSON.parse(fs.readFileSync(__dirname+ '/data/document.json', 'utf-8'))
 
 Util = {}
 
+Util.jsonToDocument = (raw_doc) ->
+  graph = new Data.Graph(schema)
+  graph.merge(raw_doc.graph)
+  doc = graph.get(raw_doc.id)
+
 Util.fetchDocument = (url, callback) ->
   fragments = require('url').parse(url)
   options = { host: fragments.hostname, port: fragments.port, path: fragments.pathname }
@@ -41,19 +46,20 @@ Util.fetchDocument = (url, callback) ->
       json += d
       
     cres.on 'end', ->
-      callback(null, JSON.parse(json))
+      callback(null, Util.jsonToDocument(JSON.parse(json)))
   .on 'error', (e) ->
     callback(e)
 
-Util.convert = (url, options, callback) ->
-  Util.fetchDocument url, (err, raw_doc) ->
-    graph = new Data.Graph(schema)
-    graph.merge(raw_doc.graph)
-    doc = graph.get(raw_doc.id)
-    
-    new LatexRenderer(doc).render (latex, resources) ->
-      callback(null, latex, raw_doc.id.replace(/\//g, "_"), resources)
-
+Util.convert = (format, doc, callback) ->
+  cmd = "./convert #{format}"
+  process = exec cmd, (err, stdout, stderr) ->
+    if err
+      callback(new Error(stderr), null)
+    else
+      callback(null, stdout)
+  
+  pandocJson = new PandocRenderer(doc).render()
+  process.stdin.end(JSON.stringify(pandocJson), 'utf-8')
 
 
 # Fetch online resource (like an image)
@@ -94,50 +100,70 @@ fetchResources = (resources, id, callback) ->
 
 
 # Routes
-# -----------
+# ------
 
 # Index
 app.get '/', (req, res) ->
   html = fs.readFileSync(__dirname+ '/templates/app.html', 'utf-8')
   res.send(html)
 
-# Convert to LaTeX
-app.get '/latex', (req, res) ->
+formats =
+  latex: { mime: 'text/plain' } # actually text/x-latex
+  markdown: { mime: 'text/plain' }
+  html: { mime: 'text/html' }
+
+app.get '/render', (req, res) ->
+  {format, url} = req.query
   res.charset = 'utf8'
-  res.header('Content-Type', 'text/plain')
-  Util.convert req.query.url, {format: 'Latex'}, (err, latex) ->
-    res.send(latex)
+  sendError = (statusCode, error) ->
+    res.statusCode = statusCode
+    res.end(error.message)
+  
+  unless formats[format]
+    # bad request
+    sendError(400, new Error("Unknown target format.")); return
+  Util.fetchDocument url, (err, doc) ->
+    if err
+      # not found
+      sendError(404, err); return
+    Util.convert format, doc, (err, result) ->
+      if err
+        # internal server error
+        sendError(500, err); return
+      console.log("Converted #{url} to #{format}.")
+      res.header('Content-Type', formats[format].mime)
+      res.end(result)
 
 # On the fly PDF generation
-app.get '/pdf', (req, res) ->
-  
-  Util.convert req.query.url, {format: 'Latex'}, (err, latex, id, resources) ->
-    pdfCmd = "pdflatex -halt-on-error -output-directory tmp/#{id} tmp/#{id}/document.tex"
-    rmCmd = "rm -rf tmp/#{id}"
-    
-    # First remove tmp dir if still there
-    exec rmCmd, (err, stdout, stderr) ->
-      fs.mkdirSync("tmp/#{id}", 0755)
-      fs.mkdirSync("tmp/#{id}/resources", 0755)
-
-      fs.writeFile "tmp/#{id}/document.tex", latex, 'utf8', (err) ->
-        throw err if err
-      
-        fetchResources resources, id, ->
-        
-          exec pdfCmd, (err, stdout, stderr) ->
-            console.log(stderr)
-            if (err)
-              res.send('An error occurred during PDF generation. Be aware PDF export is highly experimental.
-                        Problems occur when special characters are used for example. Please help improving all this by reporting your particular problem to <a href="mailto:info@substance.io">info@substance.io</a>.')
-              # res.send(stdout)
-            else
-              fs.readFile "tmp/#{id}/document.pdf", (err, data) ->
-                throw err if err
-                res.writeHead(200, { 'Content-Type': 'application/pdf'})
-                res.write(data, 'binary')
-                exec rmCmd
-                res.end()
+#app.get '/pdf', (req, res) ->
+#  
+#  Util.convert req.query.url, {format: 'Latex'}, (err, latex, id, resources) ->
+#    pdfCmd = "pdflatex -halt-on-error -output-directory tmp/#{id} tmp/#{id}/document.tex"
+#    rmCmd = "rm -rf tmp/#{id}"
+#    
+#    # First remove tmp dir if still there
+#    exec rmCmd, (err, stdout, stderr) ->
+#      fs.mkdirSync("tmp/#{id}", 0755)
+#      fs.mkdirSync("tmp/#{id}/resources", 0755)
+#
+#      fs.writeFile "tmp/#{id}/document.tex", latex, 'utf8', (err) ->
+#        throw err if err
+#      
+#        fetchResources resources, id, ->
+#        
+#          exec pdfCmd, (err, stdout, stderr) ->
+#            console.log(stderr)
+#            if (err)
+#              res.send('An error occurred during PDF generation. Be aware PDF export is highly experimental.
+#                        Problems occur when special characters are used for example. Please help improving all this by reporting your particular problem to <a href="mailto:info@substance.io">info@substance.io</a>.')
+#              # res.send(stdout)
+#            else
+#              fs.readFile "tmp/#{id}/document.pdf", (err, data) ->
+#                throw err if err
+#                res.writeHead(200, { 'Content-Type': 'application/pdf'})
+#                res.write(data, 'binary')
+#                exec rmCmd
+#                res.end()
 
 
 # Catch errors that may crash the server

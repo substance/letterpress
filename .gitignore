@@ -8,3 +8,7 @@
 /tmp/test.synctex.gz
 /tmp/test.tex
 /.DS_Store
+/node_modules
+/convert
+*.hi
+*.o
