@@ -99,18 +99,13 @@ fetchResources = (resources, id, callback) ->
     , -> callback()
 
 
-# Routes
-# ------
-
-# Index
-app.get '/', (req, res) ->
-  html = fs.readFileSync(__dirname+ '/templates/app.html', 'utf-8')
-  res.send(html)
-
 formats =
   latex: { mime: 'text/plain' } # actually text/x-latex
   markdown: { mime: 'text/plain' }
   html: { mime: 'text/html' }
+
+# Routes
+# ------
 
 app.get '/render', (req, res) ->
   {format, url} = req.query
