@@ -51,15 +51,18 @@ Util.fetchDocument = (url, callback) ->
     callback(e)
 
 Util.convert = (format, doc, callback) ->
-  cmd = "./convert #{format} #{__dirname}/templates"
-  process = exec cmd, (err, stdout, stderr) ->
-    if err
-      callback(new Error(stderr), null)
-    else
-      callback(null, stdout)
+  pandocJson = JSON.stringify(new PandocRenderer(doc).render())
   
-  pandocJson = new PandocRenderer(doc).render()
-  process.stdin.end(JSON.stringify(pandocJson), 'utf-8')
+  if format is 'json'
+    process.nextTick -> callback null, pandocJson
+  else
+    cmd = "./convert #{format} #{__dirname}/templates"
+    convertProcess = exec cmd, (err, stdout, stderr) ->
+      if err
+        callback(new Error(stderr), null)
+      else
+        callback(null, stdout)
+    convertProcess.stdin.end(pandocJson, 'utf-8')
 
 
 # Fetch online resource (like an image)
@@ -103,6 +106,7 @@ formats =
   latex: { mime: 'text/plain' } # actually text/x-latex
   markdown: { mime: 'text/plain' }
   html: { mime: 'text/html' }
+  json: { mime: 'application/json' }
 
 # Routes
 # ------
