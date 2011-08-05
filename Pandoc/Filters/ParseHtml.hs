@@ -20,8 +20,8 @@ parseBlocks :: Pandoc -> Pandoc
 parseBlocks = bottomUp plainToPara . bottomUp (concatMap parseBlock)
 
 parseBlock :: Block -> [Block]
-parseBlock (RawBlock "html" "") = []
-parseBlock (RawBlock "html" html) = parseHtmlWith (repeatParser block) html
+parseBlock (RawBlock "unparsed-html" "") = []
+parseBlock (RawBlock "unparsed-html" html) = parseHtmlWith (repeatParser block) html
 parseBlock x = [x]
 
 plainToPara :: Block -> Block
@@ -32,8 +32,8 @@ parseInlines :: Pandoc -> Pandoc
 parseInlines = bottomUp (concatMap parseInline)
 
 parseInline :: Inline -> [Inline]
-parseInline (RawInline "html" "") = []
-parseInline (RawInline "html" html) = parseHtmlWith (repeatParser inline) html
+parseInline (RawInline "unparsed-html" "") = []
+parseInline (RawInline "unparsed-html" html) = parseHtmlWith (repeatParser inline) html
 parseInline x = [x]
 
 parseHtmlWith parser html = case runParser parser defaultParserState ("source: " ++ html) tags of

@@ -21,9 +21,9 @@ class exports.PandocRenderer
   renderPart: (node, args...) ->
     @[node.type._id](node, args...)
 
-  inlineHtml: (html) -> { RawInline: ['html',html.trim()] }
+  inlineHtml: (html) -> { RawInline: ['unparsed-html',html.trim()] }
 
-  blockHtml: (html) -> { RawBlock: ['html',html.trim()] }
+  blockHtml: (html) -> { RawBlock: ['unparsed-html',html.trim()] }
 
   nullAttr: -> ['', [], []]
 
