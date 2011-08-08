@@ -123,8 +123,16 @@ fetchResource = (url, callback) ->
     if res.statusCode != 200
       return callback(new Error "Server didn't respond with 200 (OK)", null)
     
-    # TODO: handle jpeg, gif, ...
-    tmpFile = "#{tmpDir}/#{sha1 url}.png"
+    fileExtension = switch contentType = res.headers['content-type']
+      when 'image/png'  then 'png'
+      when 'image/jpg'  then 'jpg'
+      when 'image/jpeg' then 'jpg'
+      when 'image/gif'  then 'gif'
+    
+    unless fileExtension
+      return callback(new Error("Not a supported image mime type: #{contentType}"), null)
+    
+    tmpFile = "#{tmpDir}/#{sha1(url)}.#{fileExtension}"
     writeStreamToFile(res, tmpFile)
     console.log("Downloading '#{url}' to '#{tmpFile}'")
     res.on 'end', -> callback(null, tmpFile)
@@ -142,7 +150,6 @@ keysAndValuesToMap = (keys, values) ->
 
 exports.generatePdf = (latex, url, callback) ->
   hash = sha1 url
-  
   latexFile = "#{tmpDir}/#{hash}.tex"
   fs.writeFile latexFile, latex, (err) ->
     return callback(err, null) if err
