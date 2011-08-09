@@ -1,12 +1,12 @@
-http = require 'http'
-urlM = require 'url'
-fs   = require 'fs'
-path = require 'path'
+http   = require 'http'
+urlM   = require 'url'
+fs     = require 'fs'
+path   = require 'path'
 crypto = require 'crypto'
-child_process = require 'child_process'
+{exec} = require 'child_process'
 
-async = require 'async'
-Data = require 'data'
+async  = require 'async'
+Data   = require 'data'
 
 PandocRenderer = require './pandoc_renderer'
 
@@ -58,17 +58,19 @@ jsonToDocument = (rawDoc) ->
 # Convert document
 # ================
 
-exports.convert = (format, doc, callback) ->
+exports.convert = (format, doc, url, callback) ->
   try
     pandocJson = JSON.stringify(PandocRenderer.render(doc))
   catch exc
     # use `process.nextTick` to minimize code paths
     process.nextTick(-> callback exc, null); return
   
-  cmd = "#{rootDir}/convert #{format} #{templatesDir}"
-  convertProcess = child_process.exec cmd, (err, stdout, stderr) ->
-    if err
-      callback(new Error(stderr), null)
+  outputFile = "#{tmpDir}/#{sha1(url)}.#{format.extension}}"
+  cmd = "#{rootDir}/convert #{format.name} #{outputFile} #{templatesDir}"
+  convertProcess = exec cmd, (err, stdout, stderr) ->
+    return callback(err, null) if err
+    if format.binary
+      fs.readFile outputFile, callback
     else
       callback(null, stdout)
   convertProcess.stdin.end(pandocJson, 'utf-8')
@@ -155,7 +157,12 @@ exports.generatePdf = (latex, url, callback) ->
     return callback(err, null) if err
     pdfCmd = "pdflatex -halt-on-error -output-directory #{tmpDir} #{latexFile}"
     pdfFile = "#{tmpDir}/#{hash}.pdf"
-    child_process.exec pdfCmd, (err, stdout, stderr) ->
-      return callback(new Error(stderr), null) if err
+    console.log(pdfCmd)
+    exec pdfCmd, (err, stdout, stderr) ->
+      if err
+        if err.message.match /command failed/
+          # pdflatex doesn't use stderr :-(
+          err = new Error "Command failed: #{stdout}"
+        return callback(err, null)
       console.log("Generated '#{pdfFile}' from '#{latexFile}' using pdflatex.")
       fs.readFile pdfFile, callback

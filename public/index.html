@@ -27,18 +27,23 @@
     <form id="render_job" action="/render" method="get">
       <input type="url" class="url" id="document_url" name="url" value="http://substance.io/documents/substance/substance"/>
       <select name="format" class="format" size="1">
+        <!-- most popular -->
         <option value="latex" selected="selected">LaTeX</option>
         <option value="pdf">PDF</option>
-        <option value="html">HTML</option>
-        <option value="context">ConTeXt</option>
-        <option value="texinfo">Texinfo</option>
         <option value="markdown">Markdown</option>
-        <option value="textile">Textile</option>
-        <option value="mediawiki">MediaWiki</option>
-        <option value="rst">reStructuredText</option>
-        <option value="man">Man Page</option>
+        <option value="html">HTML</option>
+        <!-- remaining, ordered alphabetically -->
+        <option value="context">ConTeXt</option>
         <option value="docbook">DocBook</option>
+        <option value="epub">EPUB</option>
+        <option value="man">Man Page</option>
+        <option value="mediawiki">MediaWiki</option>
+        <option value="odt">ODT (OpenDocument Text)</option>
         <option value="org">Emacs Org-Mode</option>
+        <option value="rst">reStructuredText</option>
+        <option value="rtf">RTF (Rich Text Format)</option>
+        <option value="texinfo">Texinfo</option>
+        <option value="textile">Textile</option>
       </select>
       <input type="submit" value="Render" />
     </form>

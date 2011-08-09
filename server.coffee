@@ -1,5 +1,6 @@
 express = require 'express'
 util    = require './src/util'
+formats = require './src/formats'
 
 
 # Express.js Configuration
@@ -32,32 +33,25 @@ handleError = (errorCallback, successCallback) -> (err, args...) ->
 # Handlers
 # ========
 
-formats =
-  latex:     { mime: 'text/plain' } # actually text/x-latex
-  html:      { mime: 'text/html' }
-  json:      { mime: 'application/json' }
-  context:   { mime: 'text/plain' }
-  texinfo:   { mime: 'text/plain' }
-  markdown:  { mime: 'text/plain' }
-  textile:   { mime: 'text/plain' }
-  mediawiki: { mime: 'text/plain' }
-  rst:       { mime: 'text/plain' }
-  man:       { mime: 'text/plain' }
-  docbook:   { mime: 'application/docbook+xml' }
-  org:       { mime: 'text/plain' }
-
 handleTextFormat = (res, url, format) ->
   res.charset = 'utf8'
   sendError = sendHttpError res
   
-  unless formats[format]
+  unless format
     # bad request
     return sendError(400)(new Error("Unknown target format."))
   util.fetchDocument url, handleError sendError(404), (doc) ->
-    util.convert format, doc, handleError sendError(500), (result) ->
-      console.log("Converted '#{url}' to #{format}.")
-      res.header('Content-Type', formats[format].mime)
-      res.end(result)
+    continuation = ->
+      util.convert format, doc, url, handleError sendError(500), (result) ->
+        console.log("Converted '#{url}' to #{format.name}.")
+        res.header('Content-Type', format.mime)
+        res.end(result)
+    if format.downloadResources
+      util.downloadResources doc, handleError sendError(500), ->
+        console.log("Downloaded resources for document '#{url}'")
+        continuation()
+    else
+      continuation()
 
 # On the fly PDF generation
 handlePdf = (res, url) ->
@@ -65,7 +59,7 @@ handlePdf = (res, url) ->
   util.fetchDocument url, handleError sendError(404), (doc) ->
     util.downloadResources doc, handleError sendError(500), ->
       console.log("Downloaded resources for document '#{url}'")
-      util.convert 'latex', doc, handleError sendError(500), (latex) ->
+      util.convert formats.byName['latex'], doc, url, handleError sendError(500), (latex) ->
         console.log("Converted '#{url}' to latex for PDF generation.")
         pdfError = new Error """
           An error occurred during PDF generation. Be aware PDF
@@ -88,15 +82,16 @@ shortNameFromUrl = (url) ->
 
 app.get '/render', (req, res) ->
   {url,format} = req.query
-  res.redirect "/#{shortNameFromUrl(url)}.#{format}?url=#{encodeURIComponent(url)}"
+  format = formats.byName[format]
+  res.redirect "/#{shortNameFromUrl(url)}.#{format.extension}?url=#{encodeURIComponent(url)}"
 
-app.get /^\/[a-zA-Z0-9_]+\.([a-z]+)/, (req, res) ->
-  format = req.params[0]
+app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
+  extension = req.params[0]
   {url}  = req.query
-  if format is 'pdf'
+  if extension is 'pdf'
     handlePdf(res, url)
   else
-    handleTextFormat(res, url, format)
+    handleTextFormat(res, url, formats.byExtension[extension])
 
 
 # Start the fun
@@ -107,4 +102,4 @@ process.on 'uncaughtException', (err) ->
   console.log("Caught exception: #{err}")
 
 app.listen(4004)
-console.log('Letterpress is listening at http://localhost:4004')
+console.log("Letterpress is listening at http://localhost:4004")
