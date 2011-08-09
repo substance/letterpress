@@ -41,15 +41,16 @@ handleConversion = (res, url, format) ->
     return sendError(400)(new Error("Unknown target format."))
   util.fetchDocument url, handleError sendError(404), (doc) ->
     continuation = ->
-      util.convert format, doc, url, handleError sendError(500), (result) ->
-        console.log("Converted '#{url}' to #{format.name}.")
+      resultStream = util.convert format, doc, url, handleError sendError(500), (resultStream) ->
+        resultStream.on 'error', sendError(500)
+        console.log("Converting '#{url}' to #{format.name}.")
         if format.name is 'pdf'
-          util.generatePdf result, url, handleError sendError(500), (pdf) ->
+          util.generatePdf resultStream, url, handleError sendError(500), (pdfStream) ->
             res.header('Content-Type', 'application/pdf')
-            res.end(pdf)
+            pdfStream.pipe(res)
         else
           res.header('Content-Type', format.mime)
-          res.end(result)
+          resultStream.pipe(res)
     if format.downloadResources
       util.downloadResources doc, handleError sendError(500), ->
         console.log("Downloaded resources for document '#{url}'")
@@ -81,7 +82,7 @@ app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
 
 # Catch errors that may crash the server
 process.on 'uncaughtException', (err) ->
-  console.log("Caught exception: #{err}")
+  console.error("Caught exception: #{err}")
 
 app.listen(4004)
 console.log("Letterpress is listening at http://localhost:4004")

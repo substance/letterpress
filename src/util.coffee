@@ -3,7 +3,7 @@ urlM   = require 'url'
 fs     = require 'fs'
 path   = require 'path'
 crypto = require 'crypto'
-{exec} = require 'child_process'
+{exec,spawn} = require 'child_process'
 
 async  = require 'async'
 Data   = require 'data'
@@ -59,21 +59,37 @@ jsonToDocument = (rawDoc) ->
 # ================
 
 exports.convert = (format, doc, url, callback) ->
+  cmd = "#{rootDir}/convert"
+  outputFile = "#{tmpDir}/#{sha1(url)}.#{format.extension}}"
+  args = [format.convertTo, outputFile, templatesDir]
+  convertProcess = spawn cmd, args
+  
   try
     pandocJson = JSON.stringify(PandocRenderer.render(doc))
-  catch exc
-    # use `process.nextTick` to minimize code paths
-    process.nextTick(-> callback exc, null); return
+    convertProcess.stdin.end(pandocJson, 'utf-8')
+  catch err
+    process.nextTick -> callback(err, null)
   
-  outputFile = "#{tmpDir}/#{sha1(url)}.#{format.extension}}"
-  cmd = "#{rootDir}/convert #{format.convertTo} #{outputFile} #{templatesDir}"
-  convertProcess = exec cmd, (err, stdout, stderr) ->
-    return callback(err, null) if err
-    if format.binary
-      fs.readFile outputFile, callback
-    else
-      callback(null, stdout)
-  convertProcess.stdin.end(pandocJson, 'utf-8')
+  if format.binary
+    convertProcess.on 'exit', (exitCode) ->
+      if exitCode isnt 0
+        err = new Error("convert process exited with #{exitCode}")
+        callback(err, null)
+      else
+        callback(null, fs.createReadStream(outputFile))
+  else
+    # minimize execution paths by calling the callback asynchronously
+    process.nextTick -> callback(null, childProcessToStream(convertProcess))
+
+childProcessToStream = (child) ->
+  child.stderr.setEncoding('utf-8')
+  stderrOutput = ''
+  child.stderr.on 'data', (d) -> stderrOutput += d
+  child.on 'exit', (exitCode) ->
+    if exitCode isnt 0
+      err = new Error("Child process exited with #{exitCode}. Stderr: #{stderrOutput}")
+      child.stdout.emit 'error', err
+  child.stdout
 
 
 # Download resources
@@ -157,11 +173,11 @@ pdfErrorMsg = """
   <a href=\"mailto:info@substance.io\">info@substance.io</a>.
   """
 
-exports.generatePdf = (latex, url, callback) ->
-  hash = sha1 url
+exports.generatePdf = (latexStream, url, callback) ->
+  hash = sha1(url)
   latexFile = "#{tmpDir}/#{hash}.tex"
-  fs.writeFile latexFile, latex, (err) ->
-    return callback(err, null) if err
+  writeStreamToFile(latexStream, latexFile)
+  latexStream.on 'end', ->
     pdfCmd = "pdflatex -halt-on-error -output-directory #{tmpDir} #{latexFile}"
     pdfFile = "#{tmpDir}/#{hash}.pdf"
     console.log(pdfCmd)
@@ -172,4 +188,4 @@ exports.generatePdf = (latex, url, callback) ->
           err = new Error "#{pdfErrorMsg}\n\nCommand failed: #{stdout}"
         return callback(err, null)
       console.log("Generated '#{pdfFile}' from '#{latexFile}' using pdflatex.")
-      fs.readFile pdfFile, callback
+      callback(null, fs.createReadStream(pdfFile))
