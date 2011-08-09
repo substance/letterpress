@@ -29,8 +29,8 @@ handleError = (errorCallback, successCallback) -> (err, args...) ->
     successCallback args...
 
 
-# Routes
-# ======
+# Handlers
+# ========
 
 formats =
   latex:    { mime: 'text/plain' } # actually text/x-latex
@@ -38,8 +38,7 @@ formats =
   html:     { mime: 'text/html' }
   json:     { mime: 'application/json' }
 
-app.get '/render', (req, res) ->
-  {format, url} = req.query
+handleTextFormat = (res, url, format) ->
   res.charset = 'utf8'
   sendError = sendHttpError res
   
@@ -53,14 +52,13 @@ app.get '/render', (req, res) ->
       res.end(result)
 
 # On the fly PDF generation
-app.get '/pdf', (req, res) ->
-  {url} = req.query
+handlePdf = (res, url) ->
   sendError = sendHttpError res
   util.fetchDocument url, handleError sendError(404), (doc) ->
     util.downloadResources doc, handleError sendError(500), ->
       console.log("Downloaded resources for document '#{url}'")
       util.convert 'latex', doc, handleError sendError(500), (latex) ->
-        console.log("Converted #{url} to latex for PDF generation.")
+        console.log("Converted '#{url}' to latex for PDF generation.")
         pdfError = new Error """
           An error occurred during PDF generation. Be aware PDF
           export is highly experimental. Problems occur when
@@ -71,6 +69,26 @@ app.get '/pdf', (req, res) ->
         util.generatePdf latex, url, handleError sendError(500, pdfError), (pdf) ->
           res.header('Content-Type', 'application/pdf')
           res.end(pdf)
+
+
+# Routes
+# ======
+
+shortNameFromUrl = (url) ->
+  last = (arr) -> arr[arr.length - 1]
+  last(url.replace(/\/$/, '').split('/')).replace(/[^A-Za-z0-9_]/g, '_')
+
+app.get '/render', (req, res) ->
+  {url,format} = req.query
+  res.redirect "/#{shortNameFromUrl(url)}.#{format}?url=#{encodeURIComponent(url)}"
+
+app.get /^\/[a-zA-Z0-9_]+\.([a-z]+)/, (req, res) ->
+  format = req.params[0]
+  {url}  = req.query
+  if format is 'pdf'
+    handlePdf(res, url)
+  else
+    handleTextFormat(res, url, format)
 
 
 # Start the fun
