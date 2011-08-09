@@ -33,10 +33,18 @@ handleError = (errorCallback, successCallback) -> (err, args...) ->
 # ========
 
 formats =
-  latex:    { mime: 'text/plain' } # actually text/x-latex
-  markdown: { mime: 'text/plain' }
-  html:     { mime: 'text/html' }
-  json:     { mime: 'application/json' }
+  latex:     { mime: 'text/plain' } # actually text/x-latex
+  html:      { mime: 'text/html' }
+  json:      { mime: 'application/json' }
+  context:   { mime: 'text/plain' }
+  texinfo:   { mime: 'text/plain' }
+  markdown:  { mime: 'text/plain' }
+  textile:   { mime: 'text/plain' }
+  mediawiki: { mime: 'text/plain' }
+  rst:       { mime: 'text/plain' }
+  man:       { mime: 'text/plain' }
+  docbook:   { mime: 'application/docbook+xml' }
+  org:       { mime: 'text/plain' }
 
 handleTextFormat = (res, url, format) ->
   res.charset = 'utf8'
