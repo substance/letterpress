@@ -83,8 +83,16 @@ renderers =
     [blockHtml node.get('content').trim()]
 
   "/type/code": (node, level) ->
+    unescapeHtml = (html) ->
+      html
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+    
     nullAttr = ['', [], []]
-    [{ CodeBlock: [nullAttr, node.get('content') ] }]
+    [{ CodeBlock: [nullAttr, unescapeHtml(node.get('content')) ] }]
 
   "/type/image": (node, level) ->
     # In Pandoc, images are inline elements => wrap them with a paragraph
