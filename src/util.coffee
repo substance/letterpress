@@ -66,7 +66,7 @@ exports.convert = (format, doc, url, callback) ->
     process.nextTick(-> callback exc, null); return
   
   outputFile = "#{tmpDir}/#{sha1(url)}.#{format.extension}}"
-  cmd = "#{rootDir}/convert #{format.name} #{outputFile} #{templatesDir}"
+  cmd = "#{rootDir}/convert #{format.convertTo} #{outputFile} #{templatesDir}"
   convertProcess = exec cmd, (err, stdout, stderr) ->
     return callback(err, null) if err
     if format.binary
@@ -150,6 +150,13 @@ keysAndValuesToMap = (keys, values) ->
 # Generate PDF
 # ============
 
+pdfErrorMsg = """
+  An error occurred during PDF generation. Be aware PDF export is highly
+  experimental. Problems occur when special characters are used for example.
+  Please help improving all this by reporting your particular problem to
+  <a href=\"mailto:info@substance.io\">info@substance.io</a>.
+  """
+
 exports.generatePdf = (latex, url, callback) ->
   hash = sha1 url
   latexFile = "#{tmpDir}/#{hash}.tex"
@@ -162,7 +169,7 @@ exports.generatePdf = (latex, url, callback) ->
       if err
         if err.message.match /command failed/
           # pdflatex doesn't use stderr :-(
-          err = new Error "Command failed: #{stdout}"
+          err = new Error "#{pdfErrorMsg}\n\nCommand failed: #{stdout}"
         return callback(err, null)
       console.log("Generated '#{pdfFile}' from '#{latexFile}' using pdflatex.")
       fs.readFile pdfFile, callback

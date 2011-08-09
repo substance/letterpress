@@ -10,7 +10,7 @@ formats = [
   { name: 'mediawiki' }
   { name: 'odt', mime: 'application/vnd.oasis.opendocument.text', downloadResources: true, binary: true }
   { name: 'org' }
-  { name: 'pdf' }
+  { name: 'pdf' , downloadResources: true, convertTo: 'latex' }
   { name: 'rst' }
   { name: 'rtf', mime: 'application/rtf', downloadResources: true }
   { name: 'texinfo' }
@@ -21,6 +21,7 @@ formats = [
 formats.forEach (format) ->
   format.mime              ||= 'text/plain'
   format.extension         ||= format.name
+  format.convertTo         ||= format.name
   format.downloadResources ||= false
   format.binary            ||= false
 
