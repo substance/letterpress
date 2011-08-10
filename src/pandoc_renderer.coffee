@@ -90,6 +90,7 @@ renderers =
         .replace(/&amp;/g, '&')
         .replace(/&quot;/g, '"')
         .replace(/&apos;/g, "'")
+        .replace(/&nbsp;/g, ' ')
     
     nullAttr = ['', [], []]
     [{ CodeBlock: [nullAttr, unescapeHtml(node.get('content')) ] }]

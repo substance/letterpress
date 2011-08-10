@@ -17,10 +17,46 @@ schemaFile   = "#{rootDir}/data/schema.json"
 templatesDir = "#{rootDir}/templates"
 tmpDir       = "#{rootDir}/tmp"
 
-fs.mkdirSync(tmpDir, 0755) unless path.existsSync(tmpDir)
+fs.mkdirSync(tmpDir, '777') unless path.existsSync(tmpDir)
 
 # Fixtures
 schema = JSON.parse(fs.readFileSync(schemaFile, 'utf-8'))
+
+
+# Make document directory
+# =======================
+
+exports.makeDocDir = (url, callback) ->
+  docDir = "#{tmpDir}/#{sha1(url)}"
+  successCallback = ->
+    rmDirInXSeconds(docDir, 5*60)
+    callback(null, docDir)
+  
+  path.exists docDir, (doesIt) ->
+    if doesIt
+      successCallback()
+    else
+      fs.mkdir docDir, '777', (err) ->
+        if err
+          callback(err, null)
+        else
+          successCallback()
+
+rmDir = (dir, callback) ->
+  exec "rm -rf #{dir}", callback
+
+rmDirTimers = {}
+
+rmDirInXSeconds = (dir, seconds) ->
+  clearTimeout(rmDirTimers[dir])
+  rmDirTimers[dir] = setTimeout(->
+    delete rmDirTimers[dir]
+    rmDir dir, (err) ->
+      if err
+        console.error("Couldn't remove directory: #{err}")
+      else
+        console.log("Removed #{dir}")
+  , seconds*1000)
 
 
 # Fetch document
@@ -43,6 +79,7 @@ urlToHttpOptions = (url) ->
   }
 
 readableStreamToString = (stream, callback) ->
+  # TODO: limit the length to protect against attacks
   result = ''
   stream.setEncoding('utf8')
   stream.on 'data', (d) -> result += d
@@ -58,9 +95,9 @@ jsonToDocument = (rawDoc) ->
 # Convert document
 # ================
 
-exports.convert = (format, doc, url, callback) ->
+exports.convert = (format, doc, docDir, callback) ->
   cmd = "#{rootDir}/convert"
-  outputFile = "#{tmpDir}/#{sha1(url)}.#{format.extension}}"
+  outputFile = "#{docDir}/convert-ouput.#{format.extension}}"
   args = [format.convertTo, outputFile, templatesDir]
   convertProcess = spawn cmd, args
   
@@ -87,7 +124,7 @@ childProcessToStream = (child) ->
   child.stderr.on 'data', (d) -> stderrOutput += d
   child.on 'exit', (exitCode) ->
     if exitCode isnt 0
-      err = new Error("Child process exited with #{exitCode}. Stderr: #{stderrOutput}")
+      err = new Error("Child process exited with #{exitCode}: #{stderrOutput}")
       child.stdout.emit 'error', err
   child.stdout
 
@@ -95,9 +132,9 @@ childProcessToStream = (child) ->
 # Download resources
 # ==================
 
-exports.downloadResources = (doc, callback) ->
+exports.downloadResources = (doc, docDir, callback) ->
   resourceUrls = extractResourceUrls(doc)
-  async.map resourceUrls, fetchResource, (err, localPaths) ->
+  async.map resourceUrls, fetchResource(docDir), (err, localPaths) ->
     return callback(err) if err
     urlsMap = keysAndValuesToMap(resourceUrls, localPaths)
     replaceResourceUrls(doc, urlsMap)
@@ -136,25 +173,35 @@ sha1 = (str) ->
   hash.update(str)
   hash.digest('hex')
 
-fetchResource = (url, callback) ->
-  http.get urlToHttpOptions(url), (res) ->
-    if res.statusCode != 200
-      return callback(new Error "Server didn't respond with 200 (OK)", null)
-    
-    fileExtension = switch contentType = res.headers['content-type']
-      when 'image/png'  then 'png'
-      when 'image/jpg'  then 'jpg'
-      when 'image/jpeg' then 'jpg'
-      when 'image/gif'  then 'gif'
-    
-    unless fileExtension
-      return callback(new Error("Not a supported image mime type: #{contentType}"), null)
-    
-    tmpFile = "#{tmpDir}/#{sha1(url)}.#{fileExtension}"
-    writeStreamToFile(res, tmpFile)
-    console.log("Downloading '#{url}' to '#{tmpFile}'")
-    res.on 'end', -> callback(null, tmpFile)
-  .on 'error', (err) -> callback(err, null)
+imageTypes =
+  'image/png':  'png'
+  'image/jpg':  'jpg'
+  'image/jpeg': 'jpg'
+  'image/gif':  'gif'
+
+fetchResource = (docDir) -> (url, callback) ->
+  values = (obj) -> obj[key] for key in Object.keys(obj)
+  fileExtensions = values(imageTypes)
+  fileBaseName = "#{docDir}/#{sha1(url)}"
+  possibleFileNames = ("#{fileBaseName}.#{ext}" for ext in fileExtensions)
+  
+  async.filter possibleFileNames, path.exists, (existentFiles) ->
+    if existentFiles.length > 0
+      console.log("Image '#{url}' is already downloaded (#{existentFiles[0]}).")
+      return callback(null, existentFiles[0])
+    http.get urlToHttpOptions(url), (res) ->
+      if res.statusCode != 200
+        return callback(new Error "Server didn't respond with 200 (OK)", null)
+      
+      fileExtension = imageTypes[res.headers['content-type']]
+      unless fileExtension
+        return callback(new Error("Not a supported image mime type: #{contentType}"), null)
+      
+      tmpFile = "#{fileBaseName}.#{fileExtension}"
+      writeStreamToFile(res, tmpFile)
+      console.log("Downloading '#{url}' to '#{tmpFile}'")
+      res.on 'end', -> callback(null, tmpFile)
+    .on 'error', (err) -> callback(err, null)
 
 keysAndValuesToMap = (keys, values) ->
   map = {}
@@ -173,17 +220,16 @@ pdfErrorMsg = """
   <a href=\"mailto:info@substance.io\">info@substance.io</a>.
   """
 
-exports.generatePdf = (latexStream, url, callback) ->
-  hash = sha1(url)
-  latexFile = "#{tmpDir}/#{hash}.tex"
+exports.generatePdf = (latexStream, docDir, callback) ->
+  latexFile = "#{docDir}/document.tex"
   writeStreamToFile(latexStream, latexFile)
   latexStream.on 'end', ->
-    pdfCmd = "pdflatex -halt-on-error -output-directory #{tmpDir} #{latexFile}"
-    pdfFile = "#{tmpDir}/#{hash}.pdf"
+    pdfCmd = "pdflatex -halt-on-error -output-directory #{docDir} #{latexFile}"
+    pdfFile = "#{docDir}/document.pdf"
     console.log(pdfCmd)
     exec pdfCmd, (err, stdout, stderr) ->
       if err
-        if err.message.match /command failed/
+        if err.message.match /command\sfailed/i
           # pdflatex doesn't use stderr :-(
           err = new Error "#{pdfErrorMsg}\n\nCommand failed: #{stdout}"
         return callback(err, null)

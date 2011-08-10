@@ -39,24 +39,26 @@ handleConversion = (res, url, format) ->
   unless format
     # bad request
     return sendError(400)(new Error("Unknown target format."))
-  util.fetchDocument url, handleError sendError(404), (doc) ->
-    continuation = ->
-      resultStream = util.convert format, doc, url, handleError sendError(500), (resultStream) ->
-        resultStream.on 'error', sendError(500)
-        console.log("Converting '#{url}' to #{format.name}.")
-        if format.name is 'pdf'
-          util.generatePdf resultStream, url, handleError sendError(500), (pdfStream) ->
-            res.header('Content-Type', 'application/pdf')
-            pdfStream.pipe(res)
-        else
-          res.header('Content-Type', format.mime)
-          resultStream.pipe(res)
-    if format.downloadResources
-      util.downloadResources doc, handleError sendError(500), ->
-        console.log("Downloaded resources for document '#{url}'")
+  
+  util.makeDocDir url, handleError sendError(500), (docDir) ->
+    util.fetchDocument url, handleError sendError(404), (doc) ->
+      continuation = ->
+        resultStream = util.convert format, doc, docDir, handleError sendError(500), (resultStream) ->
+          resultStream.on 'error', sendError(500)
+          console.log("Converting '#{url}' to #{format.name}.")
+          if format.name is 'pdf'
+            util.generatePdf resultStream, docDir, handleError sendError(500), (pdfStream) ->
+              res.header('Content-Type', 'application/pdf')
+              pdfStream.pipe(res)
+          else
+            res.header('Content-Type', format.mime)
+            resultStream.pipe(res)
+      if format.downloadResources
+        util.downloadResources doc, docDir, handleError sendError(500), ->
+          console.log("Downloaded resources for document '#{url}'")
+          continuation()
+      else
         continuation()
-    else
-      continuation()
 
 
 # Routes
