@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Substance Letterpress</title>
+  
+  <!-- styles --> 
+  <link href="stylesheets/reset.css" media="screen" rel="stylesheet" type="text/css" />
+  <link href="stylesheets/app.css" media="screen" rel="stylesheet" type="text/css" />
+  
+  <!--<script src="/javascripts/jquery-1.5.min.js"></script>-->
+</head>
+
+<body>
+  <div id="container">
+    <h1>Substance Letterpress</h1>
+    <p>
+      Letterpress is a service that converts Substance Documents to proper LaTeX/PDF/Markdown/HTML/&hellip;
+    </p>
+    
+    <h2>Give it a spin</h2>
+    <p>
+      You can render any document that conforms to the Substance Document Format.
+    </p>
+    
+    <form id="render_job" action="/render" method="get">
+      <input type="url" class="url" id="document_url" name="url" value="http://substance.io/documents/substance/substance"/>
+      <select name="format" class="format" size="1">
+        <!-- most popular -->
+        <option value="latex" selected="selected">LaTeX</option>
+        <option value="pdf">PDF</option>
+        <option value="markdown">Markdown</option>
+        <option value="html">HTML</option>
+        <!-- remaining, ordered alphabetically -->
+        <option value="context">ConTeXt</option>
+        <option value="docbook">DocBook</option>
+        <option value="epub">EPUB</option>
+        <option value="man">Man Page</option>
+        <option value="mediawiki">MediaWiki</option>
+        <option value="odt">ODT (OpenDocument Text)</option>
+        <option value="org">Emacs Org-Mode</option>
+        <option value="rst">reStructuredText</option>
+        <option value="rtf">RTF (Rich Text Format)</option>
+        <option value="texinfo">Texinfo</option>
+        <option value="textile">Textile</option>
+      </select>
+      <input type="submit" value="Render" />
+    </form>
+  </div>
+</body>
+
+</html>

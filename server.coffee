@@ -1,151 +1,90 @@
-express = require('express')
-app = express.createServer()
-http = require('http')
-fs = require('fs')
-_ = require('underscore')
-Data = require('data')
-async = require('async')
-LatexRenderer = require('./src/renderers').LatexRenderer
-{spawn, exec} = require 'child_process'
+express = require 'express'
+util    = require './src/util'
+formats = require './src/formats'
+
 
 # Express.js Configuration
-# -----------
+# ========================
+
+app = express.createServer()
 
 app.configure ->
-  app.use(express.bodyParser())
-  app.use(express.methodOverride())
-  app.use(express.cookieParser())
   app.use(app.router)
-  app.use(express.static(__dirname+"/public", { maxAge: 41 }))
-
-# Fixtures
-schema = JSON.parse(fs.readFileSync(__dirname+ '/data/schema.json', 'utf-8'))
-raw_doc = JSON.parse(fs.readFileSync(__dirname+ '/data/document.json', 'utf-8'))
+  app.use(express.static("#{__dirname}/public", { maxAge: 41 }))
 
 
-# Util
-# -----------
+# Helpers
+# =======
 
-Util = {}
+# Looks almost like Haskell's partial application :-)
 
-Util.fetchDocument = (url, callback) ->
-  fragments = require('url').parse(url)
-  options = { host: fragments.hostname, port: fragments.port, path: fragments.pathname }
+sendHttpError = (res) -> (httpCode) -> (error) ->
+  res.statusCode = httpCode
+  res.end "Error: #{error.message or error}"
 
-  options.path += fragments.search if fragments.search
-
-  http.get options, (cres) ->
-    cres.setEncoding('utf8')
-    json = ""
-    cres.on 'data', (d) ->
-      json += d
-      
-    cres.on 'end', ->
-      callback(null, JSON.parse(json))
-  .on 'error', (e) ->
-    callback(e)
-
-Util.convert = (url, options, callback) ->
-  Util.fetchDocument url, (err, raw_doc) ->
-    graph = new Data.Graph(schema)
-    graph.merge(raw_doc.graph)
-    doc = graph.get(raw_doc.id)
-    
-    new LatexRenderer(doc).render (latex, resources) ->
-      callback(null, latex, raw_doc.id.replace(/\//g, "_"), resources)
+handleError = (errorCallback, successCallback) -> (err, args...) ->
+  if err
+    errorCallback err
+  else
+    successCallback args...
 
 
+# Handlers
+# ========
 
-# Fetch online resource (like an image)
-# ##################
-
-fetchResource = (url, id, index, callback) ->
-  fragments = require('url').parse(url)
-  options = { host: fragments.host, path: fragments.pathname }
-  if (fragments.search)
-    options.path += fragments.search
+handleConversion = (res, url, format) ->
+  res.charset = 'utf8'
+  sendError = sendHttpError res
   
+  unless format
+    # bad request
+    return sendError(400)(new Error("Unknown target format."))
   
-  out = fs.createWriteStream("tmp/#{id}/resources/#{index}.png", {encoding: 'binary'})
-  
-  http.get options, (cres) ->
-    return callback('error', '') if (cres.statusCode != 200)
-    cres.setEncoding('binary')
-    cres.on 'data', (d) ->
-      out.write(d, 'binary')
-      
-    cres.on 'end', ->
-      out.end()
-      callback()
-      
-  .on 'error', (e) ->
-    callback(e)
-
-
-# Fetch online resources (like an image)
-# ##################
-
-fetchResources = (resources, id, callback) ->
-  index = 0
-  async.forEach resources, (resource, callback) ->
-      fetchResource resource, id, index, -> callback()
-      index += 1
-    , -> callback()
+  util.makeDocDir url, handleError sendError(500), (docDir) ->
+    util.fetchDocument url, handleError sendError(404), (doc) ->
+      continuation = ->
+        resultStream = util.convert format, doc, docDir, handleError sendError(500), (resultStream) ->
+          resultStream.on 'error', sendError(500)
+          console.log("Converting '#{url}' to #{format.name}.")
+          if format.name is 'pdf'
+            util.generatePdf resultStream, docDir, handleError sendError(500), (pdfStream) ->
+              res.header('Content-Type', 'application/pdf')
+              pdfStream.pipe(res)
+          else
+            res.header('Content-Type', format.mime)
+            resultStream.pipe(res)
+      if format.downloadResources
+        util.downloadResources doc, docDir, handleError sendError(500), ->
+          console.log("Downloaded resources for document '#{url}'")
+          continuation()
+      else
+        continuation()
 
 
 # Routes
-# -----------
+# ======
 
-# Index
-app.get '/', (req, res) ->
-  html = fs.readFileSync(__dirname+ '/templates/app.html', 'utf-8')
-  res.send(html)
+shortNameFromUrl = (url) ->
+  last = (arr) -> arr[arr.length - 1]
+  last(url.replace(/\/$/, '').split('/')).replace(/[^A-Za-z0-9_]/g, '_')
 
-# Convert to LaTeX
-app.get '/latex', (req, res) ->
-  res.charset = 'utf8'
-  res.header('Content-Type', 'text/plain')
-  Util.convert req.query.url, {format: 'Latex'}, (err, latex) ->
-    res.send(latex)
+app.get '/render', (req, res) ->
+  {url,format} = req.query
+  format = formats.byName[format]
+  res.redirect "/#{shortNameFromUrl(url)}.#{format.extension}?url=#{encodeURIComponent(url)}"
 
-# On the fly PDF generation
-app.get '/pdf', (req, res) ->
-  
-  Util.convert req.query.url, {format: 'Latex'}, (err, latex, id, resources) ->
-    pdfCmd = "pdflatex -halt-on-error -output-directory tmp/#{id} tmp/#{id}/document.tex"
-    rmCmd = "rm -rf tmp/#{id}"
-    
-    # First remove tmp dir if still there
-    exec rmCmd, (err, stdout, stderr) ->
-      fs.mkdirSync("tmp/#{id}", 0755)
-      fs.mkdirSync("tmp/#{id}/resources", 0755)
-
-      fs.writeFile "tmp/#{id}/document.tex", latex, 'utf8', (err) ->
-        throw err if err
-      
-        fetchResources resources, id, ->
-        
-          exec pdfCmd, (err, stdout, stderr) ->
-            console.log(stderr)
-            if (err)
-              res.send('An error occurred during PDF generation. Be aware PDF export is highly experimental.
-                        Problems occur when special characters are used for example. Please help improving all this by reporting your particular problem to <a href="mailto:info@substance.io">info@substance.io</a>.')
-              # res.send(stdout)
-            else
-              fs.readFile "tmp/#{id}/document.pdf", (err, data) ->
-                throw err if err
-                res.writeHead(200, { 'Content-Type': 'application/pdf'})
-                res.write(data, 'binary')
-                exec rmCmd
-                res.end()
-
-
-# Catch errors that may crash the server
-process.on 'uncaughtException', (err) ->
-  console.log('Caught exception: ' + err)
+app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
+  extension = req.params[0]
+  {url} = req.query
+  handleConversion(res, url, formats.byExtension[extension])
 
 
 # Start the fun
-console.log('Letterpress is listening at http://localhost:4004')
-app.listen(4004)
+# =============
 
+# Catch errors that may crash the server
+process.on 'uncaughtException', (err) ->
+  console.error("Caught exception: #{err}")
+
+app.listen(4004)
+console.log("Letterpress is listening at http://localhost:4004")
