@@ -13,6 +13,7 @@ import Text.Pandoc.Templates (getDefaultTemplate)
 import Text.JSON.Generic (decodeJSON)
 
 import Pandoc.Filters.ParseHtml (parseHtml)
+import Pandoc.Filters.Compact (compact)
 
 binaryWriters :: [(String, WriterOptions -> Pandoc -> IO B.ByteString)]
 binaryWriters =
@@ -24,7 +25,7 @@ binaryWriters =
 main :: IO ()
 main = do
   [format,outputFile,templatesDir] <- getArgs
-  doc <- liftM (parseHtml . decodeJSON) getContents
+  doc <- liftM (compact . parseHtml . decodeJSON) getContents
   template <- getTemplate templatesDir format
   let writerOptions = defaultWriterOptions
                         { writerStandalone = True
