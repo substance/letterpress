@@ -9,7 +9,23 @@
   <link href="stylesheets/reset.css" media="screen" rel="stylesheet" type="text/css" />
   <link href="stylesheets/app.css" media="screen" rel="stylesheet" type="text/css" />
   
-  <!--<script src="/javascripts/jquery-1.5.min.js"></script>-->
+  <script src="/javascripts/jquery-1.5.min.js"></script>
+  <script>
+    $(function() {
+      function shortNameFromUrl(url) {
+        function last(arr) { return arr[arr.length - 1]; }
+        return last(url.replace(/\/$/, '').split('/')).replace(/[^A-Za-z0-9_]/g, '_');
+      }
+      
+      $('#render_job').submit(function() {
+        var shortname = shortNameFromUrl($('#document_url').val());
+        var format = $('#format').val();
+        var url = encodeURIComponent($('#document_url').val());
+        window.location.href = "/"+shortname+"."+format+"?url="+url;
+        return false;
+      });
+    });
+  </script>
 </head>
 
 <body>
@@ -26,7 +42,7 @@
     
     <form id="render_job" action="/render" method="get">
       <input type="url" class="url" id="document_url" name="url" value="http://substance.io/documents/substance/substance"/>
-      <select name="format" class="format" size="1">
+      <select id="format" name="format" class="format" size="1">
         <!-- most popular -->
         <option value="latex" selected="selected">LaTeX</option>
         <option value="pdf">PDF</option>

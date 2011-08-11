@@ -64,15 +64,6 @@ handleConversion = (res, url, format) ->
 # Routes
 # ======
 
-shortNameFromUrl = (url) ->
-  last = (arr) -> arr[arr.length - 1]
-  last(url.replace(/\/$/, '').split('/')).replace(/[^A-Za-z0-9_]/g, '_')
-
-app.get '/render', (req, res) ->
-  {url,format} = req.query
-  format = formats.byName[format]
-  res.redirect "/#{shortNameFromUrl(url)}.#{format.extension}?url=#{encodeURIComponent(url)}"
-
 app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
   extension = req.params[0]
   {url} = req.query
