@@ -6,16 +6,7 @@ import Text.Pandoc (bottomUp, Pandoc(..), Block(..), Inline(..))
 
 -- | Removes empty paragraphs
 compact :: Pandoc -> Pandoc
-compact = bottomUp trimPara . bottomUp (filter $ not . isEmpty)
-
-isEmpty :: Block -> Bool
-isEmpty (Para inlines) = null inlines
-isEmpty _ = False
-
-isSpace :: Inline -> Bool
-isSpace Space = True
-isSpace LineBreak = True
-isSpace _ = False
+compact = bottomUp trimPara
 
 trimPara :: Block -> Block
 trimPara (Para inlines) = Para $ trim inlines
@@ -34,3 +25,8 @@ trimRight (a:as) = let nexts = trimRight as
                    in case nexts of
                         [] -> if isSpace a then [] else [a]
                         bs -> a:bs
+
+isSpace :: Inline -> Bool
+isSpace Space = True
+isSpace LineBreak = True
+isSpace _ = False
