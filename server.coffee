@@ -40,6 +40,8 @@ handleConversion = (res, url, format) ->
     # bad request
     return sendError(400)(new Error("Unknown target format."))
   
+  console.log("Got request to convert '#{url}' to #{format.name}")
+  
   util.makeDocDir url, handleError sendError(500), (docDir) ->
     util.fetchDocument url, handleError sendError(404), (doc) ->
       continuation = ->
