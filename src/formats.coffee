@@ -13,6 +13,7 @@ formats = [
   { name: 'pdf' , downloadResources: true, convertTo: 'latex' }
   { name: 'rst' }
   { name: 'rtf', mime: 'application/rtf', downloadResources: true }
+  { name: 's5', mime: 'text/html' }
   { name: 'texinfo' }
   { name: 'textile' }
 ]
