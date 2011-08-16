@@ -8,6 +8,8 @@ import Text.Pandoc (WriterOptions(..), Pandoc(..), defaultWriterOptions, writers
 import Text.Pandoc.Writers.EPUB (writeEPUB)
 import Text.Pandoc.Writers.ODT (writeODT)
 import Text.Pandoc.Writers.RTF (rtfEmbedImage)
+import Text.Pandoc.S5 (s5HeaderIncludes)
+import Text.Pandoc.Shared (HTMLSlideVariant(..))
 import Text.Pandoc.Generic (bottomUpM)
 import Text.Pandoc.Templates (getDefaultTemplate)
 import Text.JSON.Generic (decodeJSON)
@@ -27,9 +29,18 @@ main = do
   [format,outputFile,templatesDir] <- getArgs
   doc <- liftM (compact . parseHtml . decodeJSON) getContents
   template <- getTemplate templatesDir format
+  variables <- case format of
+                 "s5" -> do
+                   inc <- s5HeaderIncludes Nothing
+                   return [("s5includes", inc)]
+                 _ -> return []
   let writerOptions = defaultWriterOptions
                         { writerStandalone = True
                         , writerTemplate = template
+                        , writerVariables = variables
+                        , writerSlideVariant = case format of
+                                                 "s5" -> S5Slides
+                                                 _ -> NoSlides
                         }
   doc' <- (if format == "rtf" then bottomUpM rtfEmbedImage else return) doc
   case lookup format binaryWriters of
