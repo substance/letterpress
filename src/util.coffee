@@ -12,10 +12,9 @@ PandocRenderer = require './pandoc_renderer'
 
 
 # Paths
-rootDir      = path.join(__dirname, '..')
-schemaFile   = "#{rootDir}/data/schema.json"
-templatesDir = "#{rootDir}/templates"
-tmpDir       = "#{rootDir}/tmp"
+rootDir    = path.join(__dirname, '..')
+schemaFile = "#{rootDir}/data/schema.json"
+tmpDir     = "#{rootDir}/tmp"
 
 fs.mkdirSync(tmpDir, '777') unless path.existsSync(tmpDir)
 
@@ -98,7 +97,7 @@ jsonToDocument = (rawDoc) ->
 exports.convert = (format, doc, docDir, callback) ->
   cmd = "#{rootDir}/convert"
   outputFile = "#{docDir}/convert-ouput.#{format.extension}}"
-  args = [format.convertTo, outputFile, templatesDir]
+  args = [format.convertTo, outputFile, rootDir]
   convertProcess = spawn cmd, args
   
   try
