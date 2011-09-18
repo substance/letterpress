@@ -8,6 +8,7 @@ import Text.Pandoc (WriterOptions(..), Pandoc(..), defaultWriterOptions, writers
 import Text.Pandoc.Writers.EPUB (writeEPUB)
 import Text.Pandoc.Writers.ODT (writeODT)
 import Text.Pandoc.Writers.RTF (rtfEmbedImage)
+import Text.Pandoc.Writers.HTML (writeHtmlString)
 import Text.Pandoc.S5 (s5HeaderIncludes)
 import Text.Pandoc.Shared (HTMLSlideVariant(..))
 import Text.Pandoc.Generic (bottomUpM)
@@ -23,24 +24,38 @@ binaryWriters =
   , ("odt",  writeODT Nothing)
   ]
 
+stringWriters :: [(String, WriterOptions -> Pandoc -> String)]
+stringWriters = ("shower", writeHtmlString):writers
 
 main :: IO ()
 main = do
-  [format,outputFile,templatesDir] <- getArgs
+  [format,outputFile,rootDir] <- getArgs
+  let templatesDir = rootDir </> "templates"
   doc <- liftM (compact . parseHtml . decodeJSON) getContents
-  template <- getTemplate templatesDir format
+  let templateExt = case format of
+                      "shower" -> "html"
+                      _        -> format
+  template <- getTemplate templatesDir templateExt
   variables <- case format of
                  "s5" -> do
                    inc <- s5HeaderIncludes Nothing
                    return [("s5includes", inc)]
+                 "shower" -> do
+                   slidy2shower <- readFile $ rootDir </> "slidy2shower.js"
+                   return [ ("header-includes", "<link rel=\"stylesheet\" href=\"http://pepelsbey.github.com/shower/themes/ribbon/styles/style.css\" />")
+                          , ("include-after", "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js\"></script>" ++
+                                              "<script>" ++ slidy2shower ++ "</script>" ++
+                                              "<script src=\"http://pepelsbey.github.com/shower/scripts/script.js\"></script>")
+                          ]
                  _ -> return []
   let writerOptions = defaultWriterOptions
                         { writerStandalone = True
                         , writerTemplate = template
                         , writerVariables = variables
                         , writerSlideVariant = case format of
-                                                 "s5" -> S5Slides
-                                                 _ -> NoSlides
+                                                 "s5"     -> S5Slides
+                                                 "shower" -> SlidySlides
+                                                 _        -> NoSlides
                         }
   doc' <- (if format == "rtf" then bottomUpM rtfEmbedImage else return) doc
   case lookup format binaryWriters of
@@ -49,7 +64,7 @@ main = do
       binaryWriter writerOptions doc' >>= B.writeFile outputFile
     Nothing -> do
       -- other formats are written to stdout
-      let (Just writer) = lookup format writers
+      let (Just writer) = lookup format stringWriters
       putStr $ writer writerOptions doc'
 
 getTemplate :: FilePath -> String -> IO String

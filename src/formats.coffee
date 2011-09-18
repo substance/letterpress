@@ -14,6 +14,7 @@ formats = [
   { name: 'rst' }
   { name: 'rtf', mime: 'application/rtf', downloadResources: true }
   { name: 's5', mime: 'text/html' }
+  { name: 'shower', mime: 'text/html' }
   { name: 'texinfo' }
   { name: 'textile' }
 ]
