@@ -74,7 +74,7 @@ app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
 # Fallback for those who have JavaScript disabled
 app.get '/render', (req, res) ->
   {url,format} = req.query
-  handleConversion(res, url, formats.byName[format])
+  handleConversion(res, url, formats.byExtension[format])
 
 
 # Start the fun
