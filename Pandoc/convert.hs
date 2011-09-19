@@ -41,11 +41,10 @@ main = do
                    inc <- s5HeaderIncludes Nothing
                    return [("s5includes", inc)]
                  "shower" -> do
-                   slidy2shower <- readFile $ rootDir </> "slidy2shower.js"
-                   return [ ("header-includes", "<link rel=\"stylesheet\" href=\"http://pepelsbey.github.com/shower/themes/ribbon/styles/style.css\" />")
-                          , ("include-after", "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js\"></script>" ++
-                                              "<script>" ++ slidy2shower ++ "</script>" ++
-                                              "<script src=\"http://pepelsbey.github.com/shower/scripts/script.js\"></script>")
+                   return [ ("header-includes", "<link rel=\"stylesheet\" href=\"/shower/themes/ribbon/styles/style.css\" />")
+                          , ("include-after", "<script src=\"/javascripts/jquery-1.5.min.js\"></script>" ++
+                                              "<script src=\"/javascripts/slidy2shower.js\"></script>" ++
+                                              "<script src=\"/shower/scripts/script.js\"></script>")
                           ]
                  _ -> return []
   let writerOptions = defaultWriterOptions
