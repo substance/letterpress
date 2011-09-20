@@ -2,6 +2,8 @@ express = require 'express'
 util    = require './src/util'
 formats = require './src/formats'
 
+ShowerRenderer = require('./src/shower_renderer').ShowerRenderer
+
 
 # Express.js Configuration
 # ========================
@@ -55,6 +57,7 @@ handleConversion = (res, url, format) ->
           else
             res.header('Content-Type', format.mime)
             resultStream.pipe(res)
+            
       if format.downloadResources
         util.downloadResources doc, docDir, handleError sendError(500), ->
           console.log("Downloaded resources for document '#{url}'")
@@ -63,8 +66,20 @@ handleConversion = (res, url, format) ->
         continuation()
 
 
+convertShower = (res, url, callback) ->
+  sendError = sendHttpError res
+  util.fetchDocument url, handleError sendError(404), (doc) ->
+    new ShowerRenderer(doc).render (html, resources) ->
+      callback(null, html)
+
+
 # Routes
 # ======
+
+app.get "/shower", (req, res) ->
+  convertShower res, "http://substance.io/documents/michael/data-js-slides", (err, html) ->
+    res.send(html)
+
 
 app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
   extension = req.params[0]
