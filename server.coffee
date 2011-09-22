@@ -57,6 +57,7 @@ renderDoc = (res, url, doc, format) ->
     if format.name is 'shower'
       continuation = ->
         new ShowerRenderer(doc).render (html, resources) ->
+          res.header('Content-Type', format.mime)
           res.end(html)
     else
       continuation = ->
