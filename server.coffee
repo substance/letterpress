@@ -1,6 +1,8 @@
 express = require 'express'
 util    = require './src/util'
+fs      = require 'fs'
 formats = require './src/formats'
+Data    = require 'data'
 
 ShowerRenderer = require('./src/shower_renderer').ShowerRenderer
 
@@ -11,9 +13,14 @@ ShowerRenderer = require('./src/shower_renderer').ShowerRenderer
 app = express.createServer()
 
 app.configure ->
+  app.use(express.bodyParser());
   app.use(app.router)
+  
   app.use(express.static("#{__dirname}/public", { maxAge: 41 }))
 
+
+# Fixtures
+schema = JSON.parse(fs.readFileSync('./data/schema.json', 'utf-8'))
 
 # Helpers
 # =======
@@ -44,26 +51,32 @@ handleConversion = (res, url, format) ->
   
   console.log("Got request to convert '#{url}' to #{format.name}")
   
+  util.fetchDocument url, handleError sendError(404), (doc) ->
+    renderDoc(res, url, doc, format)
+
+
+renderDoc = (res, url, doc, format) ->
+  sendError = sendHttpError res
   util.makeDocDir url, handleError sendError(500), (docDir) ->
-    util.fetchDocument url, handleError sendError(404), (doc) ->
-      continuation = ->
-        resultStream = util.convert format, doc, docDir, handleError sendError(500), (resultStream) ->
-          resultStream.on 'error', sendError(500)
-          console.log("Converting '#{url}' to #{format.name}.")
-          if format.name is 'pdf'
-            util.generatePdf resultStream, docDir, handleError sendError(500), (pdfStream) ->
-              res.header('Content-Type', 'application/pdf')
-              pdfStream.pipe(res)
-          else
-            res.header('Content-Type', format.mime)
-            resultStream.pipe(res)
-            
-      if format.downloadResources
-        util.downloadResources doc, docDir, handleError sendError(500), ->
-          console.log("Downloaded resources for document '#{url}'")
-          continuation()
-      else
+  
+    continuation = ->
+      resultStream = util.convert format, doc, docDir, handleError sendError(500), (resultStream) ->
+        resultStream.on 'error', sendError(500)
+        console.log("Converting '#{url}' to #{format.name}.")
+        if format.name is 'pdf'
+          util.generatePdf resultStream, docDir, handleError sendError(500), (pdfStream) ->
+            res.header('Content-Type', 'application/pdf')
+            pdfStream.pipe(res)
+        else
+          res.header('Content-Type', format.mime)
+          resultStream.pipe(res)
+        
+    if format.downloadResources
+      util.downloadResources doc, docDir, handleError sendError(500), ->
+        console.log("Downloaded resources for document '#{url}'")
         continuation()
+    else
+      continuation()
 
 
 convertShower = (res, url, callback) ->
@@ -80,6 +93,15 @@ app.get "/shower", (req, res) ->
   convertShower res, "http://substance.io/documents/michael/data-js-slides", (err, html) ->
     res.send(html)
 
+app.post "/convert", (req, res) ->
+  format = req.body.format
+  graph = req.body.graph
+  
+  g = new Data.Graph(schema)
+  g.merge(graph)
+  doc = g.get(req.body.id)
+  renderDoc(res, "post-data", doc, formats.byExtension[format])
+  
 
 app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
   extension = req.params[0]
