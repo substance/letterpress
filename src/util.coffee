@@ -85,7 +85,7 @@ readableStreamToString = (stream, callback) ->
   stream.on 'end', -> callback(null, result)
   stream.on 'error', (e) -> callback(e, null)
 
-jsonToDocument = (rawDoc) ->
+jsonToDocument = exports.jsonToDocument = (rawDoc) ->
   graph = new Data.Graph(schema)
   graph.merge(rawDoc.graph)
   doc = graph.get(rawDoc.id)

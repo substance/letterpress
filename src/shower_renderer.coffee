@@ -1,5 +1,4 @@
 fs = require('fs')
-_ = require('underscore')
 
 
 idGen = (prefix) ->
@@ -13,11 +12,12 @@ exports.ShowerRenderer = (doc) ->
   content = ""
   renderers = {
     "/type/document": (node, parent, level) ->
+      # TODO: not every presentation is made by Michael Aufreiter ;-)
       content = """
       <header class="caption">
-    		<h1>Data.js</h1>
-    		<p>Michael Aufreiter, Substance.io</p>
-    	</header>
+        <h1>Data.js</h1>
+        <p>Michael Aufreiter, Substance.io</p>
+      </header>
       """
       
       node.all('children').each (child) ->
@@ -35,8 +35,8 @@ exports.ShowerRenderer = (doc) ->
 
       content = """
       <div class="slide#{if image then ' bg' else ''}" id="#{getId()}"><div>
-    		<section>
-    	"""
+        <section>
+      """
       
       # Convention: Hide header if image caption equals section name
       if !image || image.get('caption') != node.get('name')
@@ -72,9 +72,9 @@ exports.ShowerRenderer = (doc) ->
 
       return """
       <blockquote cite="#{node.get('author')}">
-				<p>#{node.get('content')}</p>
-			</blockquote>
-			"""
+        <p>#{node.get('content')}</p>
+      </blockquote>
+      """
   }
   
   # Export Interface
