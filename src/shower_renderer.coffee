@@ -12,11 +12,10 @@ exports.ShowerRenderer = (doc) ->
   content = ""
   renderers = {
     "/type/document": (node, parent, level) ->
-      # TODO: not every presentation is made by Michael Aufreiter ;-)
       content = """
       <header class="caption">
-        <h1>Data.js</h1>
-        <p>Michael Aufreiter, Substance.io</p>
+        <h1>#{node.get('title')}</h1>
+        <p>#{node.get('creator').get('name') }</p>
       </header>
       """
       
@@ -24,7 +23,9 @@ exports.ShowerRenderer = (doc) ->
         content += renderers[child.type._id](child, node)
       
       template = fs.readFileSync(__dirname+ '/../public/shower/template.html', 'utf-8')
-      return template.replace('{{{{content}}}}', content)
+      
+      template.replace('{{{{content}}}}', content)
+              .replace('{{{{title}}}}', node.get('title'))
     
     "/type/article": (node, parent, level, callback) ->
       renderers["/type/document"](node, parent, level, callback)
