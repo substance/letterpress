@@ -25,27 +25,18 @@ binaryWriters =
   ]
 
 stringWriters :: [(String, WriterOptions -> Pandoc -> String)]
-stringWriters = ("shower", writeHtmlString):writers
+stringWriters = writers
 
 main :: IO ()
 main = do
   [format,outputFile,rootDir] <- getArgs
   let templatesDir = rootDir </> "templates"
   doc <- liftM (compact . parseHtml . decodeJSON) getContents
-  let templateExt = case format of
-                      "shower" -> "html"
-                      _        -> format
-  template <- getTemplate templatesDir templateExt
+  template <- getTemplate templatesDir format
   variables <- case format of
                  "s5" -> do
                    inc <- s5HeaderIncludes Nothing
                    return [("s5includes", inc)]
-                 "shower" -> do
-                   return [ ("header-includes", "<link rel=\"stylesheet\" href=\"/shower/themes/ribbon/styles/style.css\" />")
-                          , ("include-after", "<script src=\"/javascripts/jquery-1.5.min.js\"></script>" ++
-                                              "<script src=\"/javascripts/slidy2shower.js\"></script>" ++
-                                              "<script src=\"/shower/scripts/script.js\"></script>")
-                          ]
                  _ -> return []
   let writerOptions = defaultWriterOptions
                         { writerStandalone = True
@@ -53,7 +44,6 @@ main = do
                         , writerVariables = variables
                         , writerSlideVariant = case format of
                                                  "s5"     -> S5Slides
-                                                 "shower" -> SlidySlides
                                                  _        -> NoSlides
                         }
   doc' <- (if format == "rtf" then bottomUpM rtfEmbedImage else return) doc
