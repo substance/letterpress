@@ -219,11 +219,13 @@ pdfErrorMsg = """
   <a href=\"mailto:info@substance.io\">info@substance.io</a>.
   """
 
+latexProgram = 'pdflatex' # 'pdflatex' or 'xelatex'
+
 exports.generatePdf = (latexStream, docDir, callback) ->
   latexFile = "#{docDir}/document.tex"
   writeStreamToFile(latexStream, latexFile)
   latexStream.on 'end', ->
-    pdfCmd = "pdflatex -halt-on-error -output-directory #{docDir} #{latexFile}"
+    pdfCmd = "#{latexProgram} -halt-on-error -interaction nonstopmode -output-directory #{docDir} #{latexFile}"
     pdfFile = "#{docDir}/document.pdf"
     console.log(pdfCmd)
     exec pdfCmd, (err, stdout, stderr) ->
@@ -232,5 +234,5 @@ exports.generatePdf = (latexStream, docDir, callback) ->
           # pdflatex doesn't use stderr :-(
           err = new Error "#{pdfErrorMsg}\n\nCommand failed: #{stdout}"
         return callback(err, null)
-      console.log("Generated '#{pdfFile}' from '#{latexFile}' using pdflatex.")
+      console.log("Generated '#{pdfFile}' from '#{latexFile}' using '#{latexProgram}'.")
       callback(null, fs.createReadStream(pdfFile))
