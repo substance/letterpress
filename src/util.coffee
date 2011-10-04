@@ -14,12 +14,14 @@ PandocRenderer = require './pandoc_renderer'
 # Paths
 rootDir    = path.join(__dirname, '..')
 schemaFile = "#{rootDir}/data/schema.json"
+configFile = "#{rootDir}/config.json"
 tmpDir     = "#{rootDir}/tmp"
 
 fs.mkdirSync(tmpDir, '777') unless path.existsSync(tmpDir)
 
 # Fixtures
 schema = JSON.parse(fs.readFileSync(schemaFile, 'utf-8'))
+config = JSON.parse(fs.readFileSync(configFile, 'utf-8'))
 
 
 # Make document directory
@@ -219,13 +221,11 @@ pdfErrorMsg = """
   <a href=\"mailto:info@substance.io\">info@substance.io</a>.
   """
 
-latexProgram = 'pdflatex' # 'pdflatex' or 'xelatex'
-
 exports.generatePdf = (latexStream, docDir, callback) ->
   latexFile = "#{docDir}/document.tex"
   writeStreamToFile(latexStream, latexFile)
   latexStream.on 'end', ->
-    pdfCmd = "#{latexProgram} -halt-on-error -interaction nonstopmode -output-directory #{docDir} #{latexFile}"
+    pdfCmd = "#{config.latex_program} -halt-on-error -interaction nonstopmode -output-directory #{docDir} #{latexFile}"
     pdfFile = "#{docDir}/document.pdf"
     console.log(pdfCmd)
     exec pdfCmd, (err, stdout, stderr) ->
@@ -234,5 +234,5 @@ exports.generatePdf = (latexStream, docDir, callback) ->
           # pdflatex doesn't use stderr :-(
           err = new Error "#{pdfErrorMsg}\n\nCommand failed: #{stdout}"
         return callback(err, null)
-      console.log("Generated '#{pdfFile}' from '#{latexFile}' using '#{latexProgram}'.")
+      console.log("Generated '#{pdfFile}' from '#{latexFile}' using '#{config.latex_program}'.")
       callback(null, fs.createReadStream(pdfFile))
