@@ -105,7 +105,7 @@ renderers =
   "/type/quote": (node, level) ->
     [
       { BlockQuote: [blockHtml(node.get('content'))] }
-      { Para: ['EmDash', 'Space', inlineHtml(node.get('author'))] }
+      { Para: ['EmDash', 'Space', inlineHtml(node.get('author') || "")] }
     ]
 
   "/type/question": (node, level) ->
