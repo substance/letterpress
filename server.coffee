@@ -61,7 +61,7 @@ renderDoc = (res, url, doc, format) ->
           res.end(html)
     else
       continuation = ->
-        resultStream = util.convert format, doc, docDir, handleError sendError(500), (resultStream) ->
+        util.convert format, doc, docDir, handleError sendError(500), (resultStream) ->
           resultStream.on 'error', sendError(500)
           console.log("Converting '#{url}' to #{format.name}.")
           if format.name is 'pdf'
@@ -78,6 +78,19 @@ renderDoc = (res, url, doc, format) ->
         continuation()
     else
       continuation()
+
+handleParsing = (res, format, text) ->
+  sendError = sendHttpError(res)
+  
+  if ['markdown', 'latex'].indexOf(format) is -1
+    sendError(400)(new Error "Not a supported format: #{format}")
+    return
+  
+  stream = util.parse format, text
+  stream.on 'error', sendError(500)
+  res.header('Content-Type', 'application/json')
+  stream.pipe(process.stdout)
+  stream.pipe(res)
 
 
 # Routes
@@ -98,6 +111,10 @@ app.get /^\/[a-zA-Z0-9_]+\.([a-z0-9]+)/, (req, res) ->
 app.get '/render', (req, res) ->
   {url,format} = req.query
   handleConversion(res, url, formats.byExtension[format], util.fetchDocument)
+
+app.post "/parse", (req, res) ->
+  {format,text} = req.body
+  handleParsing(res, format, text)
 
 
 # Start the fun

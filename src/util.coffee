@@ -98,7 +98,7 @@ jsonToDocument = exports.jsonToDocument = (rawDoc) ->
 
 exports.convert = (format, doc, docDir, callback) ->
   cmd = "#{rootDir}/convert"
-  outputFile = "#{docDir}/convert-ouput.#{format.extension}}"
+  outputFile = "#{docDir}/convert-output.#{format.extension}}"
   args = [format.convertTo, outputFile, rootDir]
   convertProcess = spawn cmd, args
   
@@ -236,3 +236,17 @@ exports.generatePdf = (latexStream, docDir, callback) ->
         return callback(err, null)
       console.log("Generated '#{pdfFile}' from '#{latexFile}' using '#{config.latex_program}'.")
       callback(null, fs.createReadStream(pdfFile))
+
+
+# Parse
+# =====
+
+exports.parse = (format, text) ->
+  cmd = "pandoc"
+  args = [
+    '--from', format
+    '--to',   'json'
+  ]
+  process = spawn cmd, args
+  process.stdin.end(text, 'utf-8')
+  childProcessToStream(process)
