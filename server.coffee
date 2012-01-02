@@ -1,7 +1,7 @@
 express = require 'express'
 util    = require './src/util'
 formats = require './src/formats'
-Data    = require 'data'
+Data    = require './lib/data/data'
 
 {ShowerRenderer} = require './src/shower_renderer'
 

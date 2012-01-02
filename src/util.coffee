@@ -6,7 +6,7 @@ crypto = require 'crypto'
 {exec,spawn} = require 'child_process'
 
 async  = require 'async'
-Data   = require 'data'
+Data   = require '../lib/data/data'
 
 PandocRenderer = require './pandoc_renderer'
 
