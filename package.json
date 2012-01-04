@@ -1,0 +1,14 @@
+{
+  "name": "letterpress",
+  "description": "Cross Media Publishing for Substance documents",
+  "version": "0.2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/michael/letterpress.git"
+  },
+  "dependencies": {
+    "async": "0.1.15",
+    "express": "2.5.2",
+    "coffee-script": "1.2.0"
+  }
+}
