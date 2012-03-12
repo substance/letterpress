@@ -51,7 +51,7 @@ import Text.Pandoc.Shared
 import Text.Pandoc.Parsing
 import Data.Maybe ( fromMaybe, isJust )
 import Data.List ( intercalate )
-import Data.Char ( isSpace, isDigit )
+import Data.Char ( isSpace, isDigit, toLower )
 import Control.Monad ( liftM, guard, when )
 
 -- | Convert HTML-formatted string to 'Pandoc' document.
@@ -95,9 +95,17 @@ block = choice
             , pRawHtmlBlock
             ]
 
+-- repeated in SelfContained -- consolidate eventually
 renderTags' :: [Tag String] -> String
 renderTags' = renderTagsOptions
-               renderOptions{ optMinimize = (`elem` ["hr","br","img"]) }
+               renderOptions{ optMinimize = \x ->
+                                    let y = map toLower x
+                                    in  y == "hr" || y == "br" ||
+                                        y == "img" || y == "meta" ||
+                                        y == "link"
+                            , optRawTag = \x ->
+                                    let y = map toLower x
+                                    in  y == "script" || y == "style" }
 
 pList :: TagParser [Block]
 pList = pBulletList <|> pOrderedList <|> pDefinitionList
@@ -426,8 +434,12 @@ pTagContents =
   pStr <|> pSpace <|> smartPunctuation pTagContents <|> pSymbol <|> pBad
 
 pStr :: GenParser Char ParserState Inline
-pStr = liftM Str $ many1 $ satisfy $ \c ->
-           not (isSpace c) && not (isSpecial c) && not (isBad c)
+pStr = do
+  result <- many1 $ satisfy $ \c ->
+                     not (isSpace c) && not (isSpecial c) && not (isBad c)
+  pos <- getPosition
+  updateState $ \s -> s{ stateLastStrPos = Just pos }
+  return $ Str result
 
 isSpecial :: Char -> Bool
 isSpecial '"' = True
@@ -508,16 +520,35 @@ blockHtmlTags = ["address", "blockquote", "body", "center", "dir", "div",
                  "dt", "frameset", "li", "tbody", "td", "tfoot",
                  "th", "thead", "tr", "script", "style"]
 
+-- We want to allow raw docbook in markdown documents, so we
+-- include docbook block tags here too.
+blockDocBookTags :: [String]
+blockDocBookTags = ["calloutlist", "bibliolist", "glosslist", "itemizedlist",
+                    "orderedlist", "segmentedlist", "simplelist",
+                    "variablelist", "caution", "important", "note", "tip",
+                    "warning", "address", "literallayout", "programlisting",
+                    "programlistingco", "screen", "screenco", "screenshot",
+                    "synopsis", "example", "informalexample", "figure",
+                    "informalfigure", "table", "informaltable", "para",
+                    "simpara", "formalpara", "equation", "informalequation",
+                    "figure", "screenshot", "mediaobject", "qandaset",
+                    "procedure", "task", "cmdsynopsis", "funcsynopsis",
+                    "classsynopsis", "blockquote", "epigraph", "msgset",
+                    "sidebar", "title"]
+
+blockTags :: [String]
+blockTags = blockHtmlTags ++ blockDocBookTags
+
 isInlineTag :: Tag String -> Bool
-isInlineTag t = tagOpen (`notElem` blockHtmlTags) (const True) t ||
-                tagClose (`notElem` blockHtmlTags) t ||
+isInlineTag t = tagOpen (`notElem` blockTags) (const True) t ||
+                tagClose (`notElem` blockTags) t ||
                 tagComment (const True) t
 
 isBlockTag :: Tag String -> Bool
 isBlockTag t = tagOpen (`elem` blocktags) (const True) t ||
                tagClose (`elem` blocktags) t ||
                tagComment (const True) t
-                 where blocktags = blockHtmlTags ++ eitherBlockOrInline
+                 where blocktags = blockTags ++ eitherBlockOrInline
 
 isTextTag :: Tag String -> Bool
 isTextTag = tagText (const True)
@@ -552,8 +583,8 @@ t `closes` t2 |
    t `elem` ["h1","h2","h3","h4","h5","h6","dl","ol","ul","table","div","p"] &&
    t2 `elem` ["h1","h2","h3","h4","h5","h6","p" ] = True -- not "div"
 t1 `closes` t2 |
-   t1 `elem` blockHtmlTags &&
-   t2 `notElem` (blockHtmlTags ++ eitherBlockOrInline) = True
+   t1 `elem` blockTags &&
+   t2 `notElem` (blockTags ++ eitherBlockOrInline) = True
 _ `closes` _ = False
 
 --- parsers for use in markdown, textile readers

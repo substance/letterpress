@@ -9,7 +9,6 @@ import Text.Pandoc.Writers.EPUB (writeEPUB)
 import Text.Pandoc.Writers.ODT (writeODT)
 import Text.Pandoc.Writers.RTF (rtfEmbedImage)
 import Text.Pandoc.Writers.HTML (writeHtmlString)
-import Text.Pandoc.S5 (s5HeaderIncludes)
 import Text.Pandoc.Shared (HTMLSlideVariant(..))
 import Text.Pandoc.Generic (bottomUpM)
 import Text.Pandoc.Templates (getDefaultTemplate)
@@ -20,7 +19,7 @@ import Pandoc.Filters.Compact (compact)
 
 binaryWriters :: [(String, WriterOptions -> Pandoc -> IO B.ByteString)]
 binaryWriters =
-  [ ("epub", writeEPUB Nothing)
+  [ ("epub", writeEPUB Nothing [])
   , ("odt",  writeODT Nothing)
   ]
 
@@ -33,11 +32,9 @@ main = do
   let templatesDir = rootDir </> "templates"
   doc <- liftM (compact . parseHtml . decodeJSON) getContents
   template <- getTemplate templatesDir format
-  variables <- case format of
-                 "s5" -> do
-                   inc <- s5HeaderIncludes Nothing
-                   return [("s5includes", inc)]
-                 _ -> return []
+  let variables = case format of
+        "s5" -> [("s5-url", "/s5/default")]
+        _ -> []
   let writerOptions = defaultWriterOptions
                         { writerStandalone = True
                         , writerTemplate = template
