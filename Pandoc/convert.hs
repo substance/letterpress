@@ -7,6 +7,7 @@ import qualified Data.ByteString.Lazy as B
 import Text.Pandoc (WriterOptions(..), Pandoc(..), defaultWriterOptions, writers)
 import Text.Pandoc.Writers.EPUB (writeEPUB)
 import Text.Pandoc.Writers.ODT (writeODT)
+import Text.Pandoc.Writers.Docx (writeDocx)
 import Text.Pandoc.Writers.RTF (rtfEmbedImage)
 import Text.Pandoc.Writers.HTML (writeHtmlString)
 import Text.Pandoc.Shared (HTMLSlideVariant(..))
@@ -21,6 +22,7 @@ binaryWriters :: [(String, WriterOptions -> Pandoc -> IO B.ByteString)]
 binaryWriters =
   [ ("epub", writeEPUB Nothing [])
   , ("odt",  writeODT Nothing)
+  , ("docx", writeDocx Nothing)
   ]
 
 stringWriters :: [(String, WriterOptions -> Pandoc -> String)]

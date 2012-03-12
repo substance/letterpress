@@ -1,6 +1,7 @@
 formats = [
   { name: 'context', extension: 'ctx' }
   { name: 'docbook', extension: 'db', mime: 'application/docbook+xml' }
+  { name: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', downloadResources: true, binary: true }
   { name: 'epub', mime: 'application/epub+zip', downloadResources: true, binary: true } # unofficial mime-type
   { name: 'html', mime: 'text/html' }
   { name: 'json', mime: 'application/json' }
