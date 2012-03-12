@@ -31,7 +31,9 @@ renderChildren = (node, level) ->
   flatten = (list) -> list.reduce ((a, b) -> a.concat b), []
   flatten(renderedChildren)
 
-inlineHtml = (html) -> { RawInline: ['unparsed-html',html.trim()] }
+inlineHtml = (html) ->
+  html = html or ""
+  { RawInline: ['unparsed-html',html.trim()] }
 blockHtml  = (html) -> { RawBlock:  ['unparsed-html',html.trim()] }
 
 
@@ -56,7 +58,7 @@ renderers =
     
     [
       {
-        docTitle: [inlineHtml(node.get('title') or "")]
+        docTitle: [inlineHtml(node.get('title'))]
         docAuthors: [[inlineHtml(node.get('creator').get('name'))]]
         docDate: if date then [inlineHtml formatDate(date)] else []
       }
@@ -80,7 +82,7 @@ renderers =
     renderedChildren
 
   "/type/text": (node, level) ->
-    [blockHtml node.get('content').trim()]
+    [blockHtml node.get('content')]
 
   "/type/code": (node, level) ->
     unescapeHtml = (html) ->
@@ -105,7 +107,7 @@ renderers =
   "/type/quote": (node, level) ->
     [
       { BlockQuote: [blockHtml(node.get('content'))] }
-      { Para: ['EmDash', 'Space', inlineHtml(node.get('author') || "")] }
+      { Para: ['EmDash', 'Space', inlineHtml(node.get('author'))] }
     ]
 
   "/type/question": (node, level) ->
