@@ -7,6 +7,7 @@
     "url": "https://github.com/michael/letterpress.git"
   },
   "dependencies": {
+    "underscore": "1.2.3",
     "async": "0.1.15",
     "express": "2.5.2",
     "coffee-script": "1.2.0"
